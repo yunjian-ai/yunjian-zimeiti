@@ -10,6 +10,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: 装检查要用的库
+        run: pip install hypothesis jsonschema pyyaml requests
       - name: 格式和禁用词检查
         run: python3 tools/validate.py
       - name: 配方是不是最新
