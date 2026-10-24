@@ -1,0 +1,12 @@
+{
+  "github_owner": "yunjian-ai",
+  "repo": "yunjian-zimeiti",
+  "limits": {
+    "skill_bytes": 98304,
+    "total_bytes": 409600,
+    "profile_bytes": 3072,
+    "description_chars": 400,
+    "skill_warn_bytes": 8192
+  },
+  "feedback_url": "https://www.feishu.cn/share/base/form/shrcnFyVGCVJkpcH7lfjOD8Ec6b"
+}

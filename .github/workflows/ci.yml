@@ -1,0 +1,26 @@
+name: ci
+on:
+  push:
+  pull_request:
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: 格式和禁用词检查
+        run: python3 tools/validate.py
+      - name: 配方是不是最新
+        run: python3 tools/pack.py --check
+      - name: 安装脚本实测
+        run: python3 tools/test_install.py
+      - name: 执笔夹具和反向用例
+        run: python3 members/pen/tests/run_tests.py
+      - name: 爆款卡检查脚本自测
+        run: python3 members/pen/库/test_check_library.py
+      - name: 爆款库目录通路测试
+        run: python3 members/pen/库/test_建目录.py
+      - name: 对标雷达自测
+        run: python3 members/pen/库/test_雷达.py

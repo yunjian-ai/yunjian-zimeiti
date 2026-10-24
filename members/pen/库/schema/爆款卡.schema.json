@@ -1,0 +1,248 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://yunjian.local/pen/库/爆款卡.schema.json",
+  "title": "执笔爆款卡（卡头）",
+  "description": "一篇爆款一张卡。卡头是 Markdown 文件开头 --- 之间的 YAML；卡身的九节由 check_library.py 另查。拿不到的数写「没抓到」，不估。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "赛道",
+    "平台",
+    "形式",
+    "稿型",
+    "链接",
+    "账号",
+    "发布日期",
+    "采集日期",
+    "数据来源",
+    "互动",
+    "爆款判断",
+    "标题",
+    "开头摘引",
+    "收录"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^(dy|sph|gzh|x)-(zs|dh|ai)-[0-9]{3}$",
+      "description": "平台缩写-赛道缩写-三位序号，如 dy-zs-001；平台 dy 抖音、sph 视频号、gzh 公众号、x X；赛道 zs 知识分享、dh 带货、ai AI 应用"
+    },
+    "赛道": {
+      "enum": [
+        "知识分享",
+        "带货",
+        "AI应用"
+      ]
+    },
+    "平台": {
+      "enum": [
+        "抖音",
+        "视频号",
+        "公众号",
+        "X"
+      ]
+    },
+    "形式": {
+      "enum": [
+        "口播",
+        "图文",
+        "长文",
+        "帖子",
+        "帖子串",
+        "视频"
+      ]
+    },
+    "稿型": {
+      "enum": [
+        "复盘",
+        "方法",
+        "观点",
+        "种草带货",
+        "卖课",
+        "资源合集",
+        "其他"
+      ]
+    },
+    "链接": {
+      "type": "string",
+      "pattern": "^https?://\\S+$"
+    },
+    "账号": {
+      "type": "string",
+      "minLength": 1
+    },
+    "粉丝": {
+      "$ref": "#/$defs/数"
+    },
+    "发布日期": {
+      "$ref": "#/$defs/日期或没抓到"
+    },
+    "采集日期": {
+      "type": "string",
+      "pattern": "^20[0-9]{2}-[01][0-9]-[0-3][0-9]$"
+    },
+    "数据来源": {
+      "enum": [
+        "免费抓取",
+        "付费接口",
+        "主人提供",
+        "公开榜单"
+      ]
+    },
+    "互动": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "点赞",
+        "评论"
+      ],
+      "properties": {
+        "点赞": {
+          "$ref": "#/$defs/数"
+        },
+        "评论": {
+          "$ref": "#/$defs/数"
+        },
+        "转发": {
+          "$ref": "#/$defs/数"
+        },
+        "收藏": {
+          "$ref": "#/$defs/数"
+        },
+        "阅读": {
+          "$ref": "#/$defs/数"
+        },
+        "在看": {
+          "$ref": "#/$defs/数"
+        },
+        "播放": {
+          "$ref": "#/$defs/数"
+        }
+      }
+    },
+    "爆款判断": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "类型",
+        "依据"
+      ],
+      "properties": {
+        "类型": {
+          "enum": [
+            "干货型",
+            "共鸣传播型",
+            "槽点型",
+            "综合",
+            "数据缺"
+          ],
+          "description": "收藏÷点赞高＝干货型；转发÷点赞高＝共鸣传播型；评论÷点赞高＝槽点型"
+        },
+        "依据": {
+          "type": "string",
+          "minLength": 4,
+          "description": "写出算式或比较，如「收藏 1.99 万 ÷ 点赞 31.3 万 ＝ 6%；转发 8.0 万 ÷ 点赞 ＝ 26%」"
+        },
+        "绝对量": {
+          "type": "string"
+        },
+        "相对量": {
+          "type": "string"
+        }
+      }
+    },
+    "标题": {
+      "type": "string",
+      "minLength": 1
+    },
+    "开头摘引": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 50,
+      "description": "口播前 3 秒或长文首段的原话，最多 50 字"
+    },
+    "标签": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "收录": {
+      "enum": [
+        "公共底盘",
+        "我的库"
+      ]
+    },
+    "公开": {
+      "type": "boolean",
+      "description": "true＝进对外发布的那 5～10 篇"
+    },
+    "经典": {
+      "type": "string",
+      "minLength": 4,
+      "description": "超过时间上限还要留的常青范例，写清理由（入库要验时间）"
+    },
+    "语言": {
+      "enum": [
+        "中文",
+        "英文",
+        "日文",
+        "韩文",
+        "其他外文"
+      ],
+      "description": "不写算中文；外文卡全部用中文拆，附开头摘引中文"
+    },
+    "开头摘引中文": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80,
+      "description": "外文卡开头摘引的中文意思（意思准、说人话）"
+    },
+    "来源": {
+      "enum": [
+        "公共底盘",
+        "雷达",
+        "主人丢",
+        "回流",
+        "别的Bot"
+      ],
+      "description": "这张卡从哪来；没写当公共底盘"
+    },
+    "状态": {
+      "enum": [
+        "已拆",
+        "归档"
+      ],
+      "description": "爆款文件夹里的卡都是已拆；收件箱条目另有格式"
+    },
+    "好例": {
+      "type": "boolean",
+      "description": "回流里爆了、或考试判过的好稿才写 true，抽卡时优先"
+    }
+  },
+  "$defs": {
+    "数": {
+      "anyOf": [
+        {
+          "type": "integer",
+          "minimum": 0
+        },
+        {
+          "const": "没抓到"
+        }
+      ]
+    },
+    "日期或没抓到": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^20[0-9]{2}-[01][0-9]-[0-3][0-9]$"
+        },
+        {
+          "const": "没抓到"
+        }
+      ]
+    }
+  }
+}

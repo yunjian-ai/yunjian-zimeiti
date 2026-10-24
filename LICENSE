@@ -1,0 +1,23 @@
+云间Bot Cloudmere · 版权所有 © 2026 GangGe
+
+本仓库采用双许可：
+
+1. 内容（members/ 下的技能、资料卡、记忆、示例、考题，shared/ 和所有文档）
+   采用 知识共享 署名 4.0 国际许可协议（CC BY 4.0）：https://creativecommons.org/licenses/by/4.0/deed.zh-hans
+   转载或改编请署名「云间Bot Cloudmere · GangGe」，并附仓库链接。
+
+2. 工具代码（tools/、.github/、members/*/install.sh 及 dist/install.sh、members/*/tests/ 和技能里的 .py 检查脚本）
+   采用 MIT 许可：
+
+   Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+   associated documentation files (the "Software"), to deal in the Software without restriction, including
+   without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+   copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the
+   following conditions: The above copyright notice and this permission notice shall be included in all
+   copies or substantial portions of the Software. THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF
+   ANY KIND, EXPRESS OR IMPLIED.
+
+3. 第三方代码和资料
+   members/pen/抓取/ 改自 BeatAPI/omniscraper（https://github.com/BeatAPI/omniscraper），MIT 许可，
+   原版权声明和许可证全文保留在 members/pen/抓取/LICENSE。
+   去 AI 味的中文套话清单参考了 Humanizer-zh（MIT）。
