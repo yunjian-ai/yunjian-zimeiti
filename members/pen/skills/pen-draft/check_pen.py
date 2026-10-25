@@ -60,6 +60,7 @@ FILLER_MID = re.compile(r"(?:时候|时|之后|以后|之前|以前|那会儿|�
 FILLER_NUMBER = re.compile("(" + _FILL + r")[，,]?\s*/?[^。！？\n]{0,20}?(?:这一单|一共|总共|做了|花了|用了|弄了|忙了)[^。！？\n，,/]{0,6}?(?:\d|[两三四五六七八九十几半一])")
 QUOTE_SUBJECT = re.compile(r"(?<![我你])说[，,]\s*/?\s*(?:打算|准备|计划|想|要|会|先|再|等|得)")
 PERSON = ["您", "大家"]
+SELF_OBJECT = re.compile(r"([\u4e00-\u9fff]{2,4}?)(?:露出|腾出|空出|多出)了?(?:大半个|小半个|半个|一大半|一小半|一半|一块|一片|一截)?([\u4e00-\u9fff]{1,3})")  # 「洗手台露出了大半个台面」：自己露出自己，念着绕（杨先生 10-24）
 FRONT_DE = re.compile(r"(?:^|[。！？/\n])\s*([^，。！？/\n]{2,12}的(?:、[^，。！？/\n]{1,8})?)[，,]")
 FRONT_VERB = re.compile(r"(?:^|[。！？/\n])\s*([^，。！？/\n把我你她他们]{2,12})[，,]\s*/?\s*(?:先|再|就|全|都|又|也|还)?(?:放|挑|摆|装|收|扔|留|塞|堆|拿|挂|叠|码|搬|送|捐|丢|归|擦)")
 COPY_RUN = 15  # 仿写原创度：和原稿连续相同多少字算照搬（pen-remake，二三档不许）
@@ -395,7 +396,7 @@ def check(doc):
         add("ENDING_NO_GUIDE", MARK.sub("", end).replace("【结尾】", "")[:30], "口播收尾要给观众一个动作（钩子卡第五节）：好回答的评论问题（「评论区报个日期」），或说清理由的收藏；料里真有下一条才提关注")
     talk = plain.replace("*", "")
     for m in FILLER_MID.finditer(talk):
-        add("FILLER_MID", m.group()[:16], "口头禅夹在半句中间（人话卡第零节）：放到一句话开头，或者删掉，「走的时候，洗手台露出了大半个台面」")
+        add("FILLER_MID", m.group()[:16], "口头禅夹在半句中间（人话卡第零节）：放到一句话开头，或者删掉，「走的时候，最下面那个抽屉空出来了」")
     for m in FILLER_NUMBER.finditer(talk):
         add("FILLER_NUMBER", m.group()[:16], "口头禅放在报数、交代经过的句子前（人话卡第零节）：挪到要强调、转折的那句，或者删掉")
     for m in QUOTE_SUBJECT.finditer(talk):
@@ -404,6 +405,10 @@ def check(doc):
     for w in PERSON if form == "口播" else []:  # 长文里真人也写「您」「大家」（真人对照集），只查口播
         if w in talk and w not in matx:
             add("PERSON_WORD", w, "人称（人话卡第零节）：正文对观众只说「你」，不用「您」「大家」")
+    for clause in re.split(r"[，。！？；、,!?;/\n：:]", talk):
+        m = SELF_OBJECT.search(clause)
+        if m and set(m.group(1)) & set(m.group(2)):
+            add("SELF_OBJECT", m.group(), "自己露出自己，念着绕（人话卡第零节）：料里的原话也换成嘴上的说法，「台面空出来一大半」，意思不变")
     fronts = {m.start(1): m.group(1) for m in FRONT_DE.finditer(talk) if m.group(1) not in FILLERS and not m.group(1).endswith(("时候", "说真的"))}
     fronts.update({m.start(1): m.group(1) for m in FRONT_VERB.finditer(talk)})
     if form == "口播" and len(fronts) >= 2:
