@@ -7,7 +7,7 @@
 <p align="center">执笔 Pen · cloudmere · Grok Bot 口播稿、长文、仿写、去 AI 味、多平台改写助手 · 仓库 <a href="https://github.com/yunjian-ai/yunjian-zimeiti">github.com/yunjian-ai/yunjian-zimeiti</a></p>
 
 <p align="center">
-  <a href="CHANGELOG.md"><img alt="执笔" src="https://img.shields.io/badge/执笔-v0.3.3-c0392b"></a>
+  <a href="CHANGELOG.md"><img alt="执笔" src="https://img.shields.io/badge/执笔-v0.3.4-c0392b"></a>
   <a href="LICENSE"><img alt="license" src="https://img.shields.io/badge/license-CC%20BY%204.0%20%2B%20MIT-555555"></a>
   <a href="https://github.com/yunjian-ai/yunjian-zimeiti/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/yunjian-ai/yunjian-zimeiti/actions/workflows/ci.yml/badge.svg"></a>
 </p>
@@ -61,7 +61,7 @@
 **手动安装**（能跑 shell 的 Bot；Claude Code 等在 `bash` 前加技能目录，如 `PEN_SKILL_DIR=~/.claude/skills bash`）：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/yunjian-ai/yunjian-zimeiti/pen-v0.3.3/members/pen/dist/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/yunjian-ai/yunjian-zimeiti/pen-v0.3.4/members/pen/dist/install.sh | bash
 ```
 
 **更新、修复、反馈**，都是一句话：
@@ -77,7 +77,7 @@ curl -fsSL https://raw.githubusercontent.com/yunjian-ai/yunjian-zimeiti/pen-v0.3
 
 | 系列 | 成员 | 职能 | 状态 |
 |---|---|---|---|
-| 万象 | 执笔 Pen | 写稿：口播、长文、仿写、多平台 | ✅ v0.3.3 |
+| 万象 | 执笔 Pen | 写稿：口播、长文、仿写、多平台 | ✅ v0.3.4 |
 | 万象 | 丹青 | 做图 | 规划中 |
 | 万象 | 掠影 | 做视频 | 规划中 |
 
