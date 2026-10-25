@@ -3,8 +3,11 @@
 给人看：网页上有两个按钮——「写作视图」按颜色标出钩子（红）、论点（蓝）、证据（绿）、槽点（橙）、图片位（紫）、收藏件（金），
 给主人审稿用；「发布视图」是读者看到的样子。==黄底== 是重点句，**红字** 是数字和重读，★ 💡 ⚠️ 👇 【可以直接抄】各有固定样式。
 用法：python3 长文排版.py 稿子.md [-o 排版.html]     稿子用 - 就从标准输入读
+     图片位写上图片文件名（「👇【图】说明｜图1.jpg」），就把这张图嵌进网页（文件名相对稿子所在文件夹），网页单独发出去也能看到图。
      同时在网页旁边存一份「同名-发布版.md」（去掉【钩子】这类标注，留下读者要看的）。"""
+import base64
 import html
+import mimetypes
 import re
 import sys
 from pathlib import Path
@@ -31,6 +34,7 @@ p{margin:10px 0}mark{background:var(--hl);color:inherit;padding:0 3px;border-rad
 .copy{background:var(--card);border:1px dashed var(--muted);border-radius:10px;padding:10px 14px;margin:12px 0;font-size:15px;white-space:pre-wrap}
 .copy .cap{font-size:12px;color:var(--muted);margin-bottom:4px;white-space:normal}
 .media{border:2px dashed var(--media);border-radius:10px;padding:12px 14px;margin:14px 0;color:var(--media);font-size:15px}.media .cap{font-weight:700}
+.media img{display:block;width:100%;border-radius:8px;margin-top:8px}body:not(.write) .has-img{border:0;padding:0}body:not(.write) .has-img .cap{display:none}
 table{border-collapse:collapse;width:100%;font-size:15px;margin:10px 0}td,th{border:1px solid var(--line);padding:6px 8px;text-align:left}th{background:var(--card)}
 body.write [data-role]{border-left:5px solid var(--c);padding-left:12px;margin-left:-17px}
 body.write [data-role]::before{content:attr(data-role);display:block;width:fit-content;margin:6px 0 -4px;font-size:11px;font-weight:700;color:#fff;background:var(--c);padding:0 8px;border-radius:4px;line-height:1.7}
@@ -55,7 +59,10 @@ def table(rows):
     return f"<table><tr>{head}</tr>{body}</table>"
 
 
-def render(text):
+IMG_EXT = (".png", ".jpg", ".jpeg", ".webp", ".gif")
+
+
+def render(text, base=None):
     lines = text.splitlines()
     title, sub, out, pub = "", "", [], []
     i, role = 0, None
@@ -120,10 +127,17 @@ def render(text):
         elif MEDIA_RE.match(s):
             kind, rest = MEDIA_RE.match(s).groups()
             parts = [x.strip() for x in rest.split("｜") if x.strip()]
+            img = next((x for x in parts[1:] if x.lower().endswith(IMG_EXT) and base and (Path(base) / x).is_file()), None)
             cap = parts[0] if parts else ""
-            more = "<br>".join(html.escape(x) for x in parts[1:])
-            out.append(f'<div class="media"><div class="cap">👇 {kind}：{html.escape(cap)}</div>{more}</div>')
-            pub.append(f"👇 {cap}" + (f"（{kind}位：{'；'.join(parts[1:])}）" if parts[1:] else ""))
+            if img:  # 有真图就嵌进去：写作视图带说明框，发布视图只剩图
+                f = Path(base) / img
+                src = f"data:{mimetypes.guess_type(f.name)[0] or 'image/png'};base64," + base64.b64encode(f.read_bytes()).decode()
+                out.append(f'<div class="media has-img"><div class="cap">👇 {kind}：{html.escape(cap)}</div><img src="{src}" alt="{html.escape(cap)}"></div>')
+                pub.append(f"![{cap}]({img})")
+            else:
+                more = "<br>".join(html.escape(x) for x in parts[1:])
+                out.append(f'<div class="media"><div class="cap">👇 {kind}：{html.escape(cap)}</div>{more}</div>')
+                pub.append(f"👇 {cap}" + (f"（{kind}位：{'；'.join(parts[1:])}）" if parts[1:] else ""))
         else:
             out.append(f"<div{attr}><p>{inline(s)}</p></div>"); pub.append(s)
         i += 1
@@ -137,7 +151,9 @@ def render(text):
               '<span style="background:var(--proof)"></span>证据<span style="background:var(--slot)"></span>槽点<span style="background:var(--media)"></span>图片／视频／图表位'
               '<span style="background:var(--save)"></span>收藏件　·　<mark>黄底</mark>＝重点句　<span class="num">红字</span>＝数字</div>'
             f"</div><script>{JS}</script></body></html>")
-    return page, re.sub(r"==(.+?)==", r"**\1**", "\n\n".join(pub)) + "\n"  # 平台不认 ==，发布版改成加粗
+    pubtxt = re.sub(r"==(.+?)==", r"**\1**", "\n\n".join(pub))  # 平台不认 ==，发布版改成加粗
+    pubtxt = re.sub(r"\*\*([^*\n]+?)([，。！？、；：,.!?;:]+)\*\*", r"**\1**\2", pubtxt)  # 粗体结尾紧贴中文标点，md 认不出来，标点挪到外面
+    return page, pubtxt + "\n"
 
 
 def main(argv=None):
@@ -148,7 +164,7 @@ def main(argv=None):
     src = argv[0]
     text = sys.stdin.read() if src == "-" else Path(src).read_text(encoding="utf-8")
     dest = Path(argv[argv.index("-o") + 1]) if "-o" in argv else (Path("长文排版.html") if src == "-" else Path(src).with_suffix(".html"))
-    page, pub = render(text)
+    page, pub = render(text, base=None if src == "-" else Path(src).resolve().parent)
     dest.write_text(page, encoding="utf-8")
     pubf = dest.with_name(dest.stem + "-发布版.md")
     pubf.write_text(pub, encoding="utf-8")

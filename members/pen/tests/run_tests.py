@@ -112,5 +112,15 @@ else:
     except Exception as ex:  # noqa: BLE001
         report(False, "乱输入不崩", repr(ex)[:200])
 
+# ⑤ 长文排版：图片位写了文件名就把图嵌进网页；发布版粗体不贴中文标点；没有的图留占位（v0.3.1）
+import importlib.util, tempfile  # noqa: E402
+_spec = importlib.util.spec_from_file_location("paiban", HERE.parent / "skills" / "pen-draft" / "长文排版.py")
+paiban = importlib.util.module_from_spec(_spec); _spec.loader.exec_module(paiban)
+with tempfile.TemporaryDirectory() as d:
+    (Path(d) / "图1.png").write_bytes(b"\x89PNG\r\n\x1a\n" + b"0" * 20)
+    page, pub = paiban.render("标题：试\n\n有个衣柜，==常穿的只有 9 件。==\n\n👇【图】衣柜｜图1.png\n\n👇【图】没有的图｜图9.png", base=d)
+report("data:image/png;base64," in page and "![衣柜](图1.png)" in pub and "**常穿的只有 9 件**。" in pub and "没有的图（图位：图9.png）" in pub,
+       "长文排版：图嵌进网页、粗体标点挪外面、缺图留占位", pub[:200])
+
 print("\n" + ("全部通过" if not fails else f"{fails} 项没过"))
 sys.exit(1 if fails else 0)
