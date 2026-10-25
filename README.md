@@ -65,7 +65,7 @@
 **手动安装**（能跑 shell 的 Bot；Claude Code 等在 `bash` 前加技能目录，如 `PEN_SKILL_DIR=~/.claude/skills bash`）：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/yunjian-ai/yunjian-zimeiti/pen-v0.2.2/members/pen/dist/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/yunjian-ai/yunjian-zimeiti/pen-v0.2.3/members/pen/dist/install.sh | bash
 ```
 
 **更新、修复、反馈**，都是一句话：

@@ -53,6 +53,15 @@ SELF_LABEL = re.compile(r"(我的概括|我的判断|我对.{0,8}的概括|判�
 HEDGE = ["至少", "应该", "大概", "差不多", "好像", "基本上", "估计"]  # 人家话里留口子的词（第 8 轮判分 I：「至少不用每箱都打开」写成「不用开箱」）
 PLAN = re.compile(r"(?:要|打算|准备|计划|想)([\u4e00-\u9fff]{2})")  # 料里的打算：稿里写成「动作了」「已经动作」就是改了完成状态
 SOURCE_TALK = ["真实发生", "真实的结果", "的说法", "口径", "都是这次", "这次整理里的", "都是同一个", "别处领", "不用再去别处", "是真的", "没有编", "不是编的", "这条料", "这份料", "这份材料", "材料里", "料里写", "这里不猜", "不替她猜", "这里认的是", "别拼成", "的做法里没有", "不能据此", "不能直接推出", "推不出", "这是她说的", "这是他说的"]  # 正文对观众自证出处（全量回归根子 X）、讲范围（第 3 次根子 EE）
+# 人话卡第零节（杨先生 10-24）：口头禅只放句首，不夹在半句中间、不放在报数交代前；转述说全主语；「你」只指观众；顺着说不倒装
+FILLERS = ["我跟你讲", "我跟你说", "不瞒你说", "你猜怎么着", "你知道吗", "说真的", "说实话", "好家伙", "跟你讲", "讲真"]
+_FILL = "(?:" + "|".join(FILLERS) + ")"
+FILLER_MID = re.compile(r"(?:时候|时|之后|以后|之前|以前|那会儿|的)[，,、]?\s*/?\s*(" + _FILL + r")[，,/]")
+FILLER_NUMBER = re.compile("(" + _FILL + r")[，,]?\s*/?[^。！？\n]{0,20}?(?:这一单|一共|总共|做了|花了|用了|弄了|忙了)[^。！？\n，,/]{0,6}?(?:\d|[两三四五六七八九十几半一])")
+QUOTE_SUBJECT = re.compile(r"(?<![我你])说[，,]\s*/?\s*(?:打算|准备|计划|想|要|会|先|再|等|得)")
+PERSON = ["您", "大家"]
+FRONT_DE = re.compile(r"(?:^|[。！？/\n])\s*([^，。！？/\n]{2,12}的(?:、[^，。！？/\n]{1,8})?)[，,]")
+FRONT_VERB = re.compile(r"(?:^|[。！？/\n])\s*([^，。！？/\n把我你她他们]{2,12})[，,]\s*/?\s*(?:先|再|就|全|都|又|也|还)?(?:放|挑|摆|装|收|扔|留|塞|堆|拿|挂|叠|码|搬|送|捐|丢|归|擦)")
 COPY_RUN = 15  # 仿写原创度：和原稿连续相同多少字算照搬（pen-remake，二三档不许）
 CONJ = ["因为", "所以", "但是", "然而", "同时", "此外", "而且", "并且", "因此", "不仅"]
 METAPHOR = {"仓储": ("仓库", "库存", "入库"), "赛道": ("赛道", "跑道", "终点线", "弯道超车"), "海洋": ("浪潮", "潮水", "蓝海", "灯塔", "彼岸"),
@@ -377,13 +386,28 @@ def check(doc):
             add("BOLD_MISSING", "台词里没有 **重读**", "要重读的数字和词用 **…** 标出（形式卡第一节），念的人知道哪里加重")
         if "==" not in raw:
             add("HIGHLIGHT_MISSING", "全稿没有 ==重点==", "口播要用 ==…== 标出重点句和字幕词（形式卡第一节），念的人扫一眼就知道重音在哪")
-        longl = [x for x in "/".join(lines).split("/") if han(x) > 18]
+        longl = [x for x in "/".join(lines).split("/") if han(x) > 24]
         if longl:
-            add("LINE_LONG", longl[0][:20], "台词一行一口气，最多 15 字左右（形式卡第一节）：在逗号处换行")
+            add("LINE_LONG", longl[0][:20], "台词按说话的停顿断行，一行最多二十来字（形式卡第一节）：在说话自然停的地方换行，不为断行把东西提到前面")
     if form == "口播" and not segmented and re.search(r"(?m)^\s*【(?:前 ?3 ?秒|冲突|正文|方法|结果|结尾|戳观众|转折)】", raw):
         add("OLD_HEADER", "【前 3 秒】式段头", "口播段头换成「🟥 ① 钩子 0～3″〔画面 · 动作 · 语气〕」（形式卡第一节，10-24 起的格式）")
     if form == "口播" and end is not None and not re.search(r"评论|留言|收藏|关注|下一条|下期", end):
         add("ENDING_NO_GUIDE", MARK.sub("", end).replace("【结尾】", "")[:30], "口播收尾要给观众一个动作（钩子卡第五节）：好回答的评论问题（「评论区报个日期」），或说清理由的收藏；料里真有下一条才提关注")
+    talk = plain.replace("*", "")
+    for m in FILLER_MID.finditer(talk):
+        add("FILLER_MID", m.group()[:16], "口头禅夹在半句中间（人话卡第零节）：放到一句话开头，或者删掉，「走的时候，洗手台露出了大半个台面」")
+    for m in FILLER_NUMBER.finditer(talk):
+        add("FILLER_NUMBER", m.group()[:16], "口头禅放在报数、交代经过的句子前（人话卡第零节）：挪到要强调、转折的那句，或者删掉")
+    for m in QUOTE_SUBJECT.finditer(talk):
+        if m.group() not in matx:
+            add("QUOTE_SUBJECT", m.group(), "转述丢了主语（人话卡第零节）：直接学她说「她说：先把开着的用完」，或说全「她说她打算……」")
+    for w in PERSON if form == "口播" else []:  # 长文里真人也写「您」「大家」（真人对照集），只查口播
+        if w in talk and w not in matx:
+            add("PERSON_WORD", w, "人称（人话卡第零节）：正文对观众只说「你」，不用「您」「大家」")
+    fronts = {m.start(1): m.group(1) for m in FRONT_DE.finditer(talk) if m.group(1) not in FILLERS and not m.group(1).endswith(("时候", "说真的"))}
+    fronts.update({m.start(1): m.group(1) for m in FRONT_VERB.finditer(talk)})
+    if form == "口播" and len(fronts) >= 2:
+        add("FRONT_OBJ", "、".join(list(fronts.values())[:3]), f"{len(fronts)} 处把东西提到前面再加逗号（人话卡第零节）：顺着说「谁、干了什么、结果」，「我们把她每天用的五瓶放回台面」")
     if re.search(r"我把(?:这次的)?做法整理成", plain):
         add("TEMPLATE_LINE", "我把这次的做法整理成……", "引出收藏件的套话（pen-draft 第 2 节第 6 条）：换成跟着这条话头走的说法")
     asks = len(re.findall(r"[？?]", plain))
