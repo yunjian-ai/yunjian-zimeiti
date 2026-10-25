@@ -29,6 +29,10 @@ def check_member(m, root, errors):
     ver = (m / "VERSION").read_text().strip() if (m / "VERSION").exists() else ""
     if not re.fullmatch(r"\d+\.\d+\.\d+", ver):
         errors.append(f"[version] {name}: VERSION 缺失或不是 x.y.z")
+    for readme in (root / "发布素材" / "README.md", root / "README.md"):  # 首页手动安装命令的标签要跟当前版本（v0.2.1 首页还写着 v0.2.0）
+        if readme.exists():
+            for old in set(re.findall(rf"{name}-v(\d+\.\d+\.\d+)", readme.read_text(encoding="utf-8"))) - {ver}:
+                errors.append(f"[version] {readme.relative_to(root)} 里写的是 {name}-v{old}，当前 VERSION 是 {ver}")
     prof = m / "profile.json"
     if not prof.exists():
         errors.append(f"[profile] {name}: 缺 profile.json")

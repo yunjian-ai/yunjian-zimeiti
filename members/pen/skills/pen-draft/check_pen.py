@@ -48,10 +48,11 @@ SCOPE = ["剩下的", "全都", "没人", "从来", "一直", "惦记", "动过"
          "没让", "一件都不用",  # 否定句加事实（第 10 轮判分 M：「我没让她扔一件」）
          "开心", "高兴", "感动", "心疼", "焦虑", "崩溃", "松了口气", "踏实", "委屈", "犯愁"]  # 人的感受（料里没有就是编）
 SCOPE_RE = [re.compile(r"困(?![难惑扰境局])")]  # 「困」是状态，「困难」不算
+SCOPE_OK = {"天天": ("每天",), "空了": ("空瓶", "空的", "空盒")}  # 口语同义说法：料里有左边的意思就不算扩大（10-24 杨先生「说人话」）
 SELF_LABEL = re.compile(r"(我的概括|我的判断|我对.{0,8}的概括|判断|推断|补的说明)")  # 出处表里自己标的加话（第 9 轮判分 K）
 HEDGE = ["至少", "应该", "大概", "差不多", "好像", "基本上", "估计"]  # 人家话里留口子的词（第 8 轮判分 I：「至少不用每箱都打开」写成「不用开箱」）
 PLAN = re.compile(r"(?:要|打算|准备|计划|想)([\u4e00-\u9fff]{2})")  # 料里的打算：稿里写成「动作了」「已经动作」就是改了完成状态
-SOURCE_TALK = ["真实发生", "真实的结果", "的说法", "口径", "都是这次", "这次整理里的", "都是同一个", "别处领", "不用再去别处", "是真的", "没有编", "不是编的", "这条料", "这份料", "这份材料", "材料里", "料里写", "这里不猜", "不替她猜", "这里认的是", "别拼成", "的做法里没有", "不能据此", "不能直接推出", "推不出"]  # 正文对观众自证出处（全量回归根子 X）、讲范围（第 3 次根子 EE）
+SOURCE_TALK = ["真实发生", "真实的结果", "的说法", "口径", "都是这次", "这次整理里的", "都是同一个", "别处领", "不用再去别处", "是真的", "没有编", "不是编的", "这条料", "这份料", "这份材料", "材料里", "料里写", "这里不猜", "不替她猜", "这里认的是", "别拼成", "的做法里没有", "不能据此", "不能直接推出", "推不出", "这是她说的", "这是他说的"]  # 正文对观众自证出处（全量回归根子 X）、讲范围（第 3 次根子 EE）
 COPY_RUN = 15  # 仿写原创度：和原稿连续相同多少字算照搬（pen-remake，二三档不许）
 CONJ = ["因为", "所以", "但是", "然而", "同时", "此外", "而且", "并且", "因此", "不仅"]
 METAPHOR = {"仓储": ("仓库", "库存", "入库"), "赛道": ("赛道", "跑道", "终点线", "弯道超车"), "海洋": ("浪潮", "潮水", "蓝海", "灯塔", "彼岸"),
@@ -274,7 +275,7 @@ def check(doc):
             if squash(q) and squash(q) not in whole:
                 add("FAKE_QUOTE", q, "出处表引的原话料里搜不到（写法卡三）：抄料里的原句，抄不出就是编的")
     for w in SCOPE + SCOPE_RE:
-        hit = (w.search(plain) and not w.search(matx)) if hasattr(w, "search") else (w in plain and w not in matx)
+        hit = (w.search(plain) and not w.search(matx)) if hasattr(w, "search") else (w in plain and w not in matx and not any(o in matx for o in SCOPE_OK.get(w, ())))
         if hit and mats:
             add("SCOPE_WORD", w if isinstance(w, str) else w.pattern[0], "范围、频率、结果、感受（写法卡三）：料里没有就是编，删掉或照料写")
     for line in doc.get("body", "").split("\n"):
@@ -351,6 +352,15 @@ def check(doc):
     first = re.split(r"[。！？!?\n]", MARK.sub("", "\n".join(lines)).replace("*", "").replace("=", "").lstrip())[0] if lines else ""
     if re.match(r"^\s*(上周|这周|本周|前天|昨天|今天|上个月|这个月|前几天|那天|有一次|去年)", first) and not re.search(r"\d|[两三四五六七八九十几百千]+[个件双本箱袋样瓶层次摞]|十来|几十|半面墙", first):
         add("HOOK_SETUP", first[:20], "第一句用时间地点起头、没落下痛或反差（钩子卡第二节）：把客户的痛、反差或前后对比挪到第一句，时间地点放第二句")
+    if re.search(r"这是(?:上个?月|上周|上个?星期|这周.?|本周|昨天|前天|前几天|那天)[^。！？]{0,30}?说的", re.sub(r"\s", "", MARK.sub("", raw))):
+        add("HOOK_INVERT", "这是上周……她跟我说的", "倒装交代（钩子卡第二节）：时间地点挪到第二句就顺着说「昨天去了一个租房的女孩家」，不说「这是昨天，我去……她跟我说的」")
+    if form == "长文" and han(plain) >= 400:
+        if "目录" not in raw:
+            add("TOC_MISSING", "没有目录", "开头四件套第④项（形式卡第二节）：列三到六条读者拿走的东西")
+        if not re.search(r"(?m)^\s*(?:#{1,6}\s*)?\d+\.\d+", raw):
+            add("SUBSECTION_MISSING", "只有一级编号", "长文骨架两级编号（形式卡第二节）：大章「一、二、三」，小节「1.1、1.2」")
+        if not re.search(r"[★💡⚠]", raw):
+            add("SYMBOL_MISSING", "没用 ★ 💡 ⚠️", "固定符号（形式卡第二节）：★ 关键步骤、💡 小技巧、⚠️ 坑，有就标")
     if form == "长文" and han(plain) >= 1000:
         if "👇" not in raw:
             add("MEDIA_MISSING", "全文没有 👇 图片位", "长文每个大章至少一个图片位（形式卡第二节）：写清这张图看什么、要拍什么、没有就用什么")
@@ -359,6 +369,8 @@ def check(doc):
     if form == "口播" and segmented:
         heads = [l.strip() for l in raw.splitlines() if SEG.match(l.strip())]
         nocue = [h for h in heads if "〔" not in h]
+        if heads and not all(re.match(r"^[🟥🟧🟨🟩🟦🟪⬛⬜]", h) for h in heads):
+            add("COLOR_MISSING", heads[0][:16], "段头前面带色块（形式卡第一节）：🟥🟧🟨🟩🟦🟪 按段轮，聊天里交的文字版也要带")
         if nocue:
             add("CUE_MISSING", nocue[0][:20], "段头没写〔画面 · 动作 · 语气〕提示（形式卡第一节）")
         if not any("**" in l for l in raw.splitlines() if not SEG.match(l.strip())):

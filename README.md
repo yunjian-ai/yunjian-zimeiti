@@ -58,14 +58,14 @@
 
    | 成员 | 分享链接 |
    |---|---|
-   | 执笔 Pen | （发布后补上） |
+   | 执笔 Pen | https://x.ai/bot/NJcMysJV_8mT5AjEJWziD |
 
 2. 第一次对话时它会问能不能从本仓库装齐技能，说可以，一分钟装好，不装插件、不要密钥。
 
 **手动安装**（能跑 shell 的 Bot；Claude Code 等在 `bash` 前加技能目录，如 `PEN_SKILL_DIR=~/.claude/skills bash`）：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/yunjian-ai/yunjian-zimeiti/pen-v0.2.0/members/pen/dist/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/yunjian-ai/yunjian-zimeiti/pen-v0.2.2/members/pen/dist/install.sh | bash
 ```
 
 **更新、修复、反馈**，都是一句话：

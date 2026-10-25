@@ -63,7 +63,7 @@ def render(text):
         s = lines[i].strip()
         if s == "---" or (META_RE.match(s) and title):
             break
-        m = re.match(r"^\**标题\**[：:]\s*(.+)", s)
+        m = re.match(r"^(?:\**标题\**[：:]|#(?!#))\s*(.+)", s)  # 「标题：…」或「# …」都认（10-24 比稿盲看，有写手用 # 起头）
         if m and not title:
             title = re.sub(r"（候选.*?）", "", m.group(1)).strip()
             pub.append(f"# {title}")
