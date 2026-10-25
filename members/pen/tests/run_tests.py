@@ -122,5 +122,11 @@ with tempfile.TemporaryDirectory() as d:
 report("data:image/png;base64," in page and "![衣柜](图1.png)" in pub and "**常穿的只有 9 件**。" in pub and "没有的图（图位：图9.png）" in pub,
        "长文排版：图嵌进网页、粗体标点挪外面、缺图留占位", pub[:200])
 
+_bold = {"一行里 **A 很重要**，还有 **B 也重要。**完": "一行里 **A 很重要**，还有 **B 也重要**。完",
+         "==常穿的只有 **9** 件。==": "**常穿的只有 9 件**。",
+         "**第一步**：装箱。**第二步**：放阳台。": "**第一步**：装箱。**第二步**：放阳台。"}
+_got = {k: paiban.render("标题：试\n\n" + k)[1].split("\n\n", 1)[1].strip() for k in _bold}
+report(_got == _bold, "长文排版：一行几处加粗不串、== 里套粗体不叠两层（Bot 实测报的毛病）", str({k: v for k, v in _got.items() if v != _bold[k]}))
+
 print("\n" + ("全部通过" if not fails else f"{fails} 项没过"))
 sys.exit(1 if fails else 0)

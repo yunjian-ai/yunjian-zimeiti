@@ -151,9 +151,20 @@ def render(text, base=None):
               '<span style="background:var(--proof)"></span>证据<span style="background:var(--slot)"></span>槽点<span style="background:var(--media)"></span>图片／视频／图表位'
               '<span style="background:var(--save)"></span>收藏件　·　<mark>黄底</mark>＝重点句　<span class="num">红字</span>＝数字</div>'
             f"</div><script>{JS}</script></body></html>")
-    pubtxt = re.sub(r"==(.+?)==", r"**\1**", "\n\n".join(pub))  # 平台不认 ==，发布版改成加粗
-    pubtxt = re.sub(r"\*\*([^*\n]+?)([，。！？、；：,.!?;:]+)\*\*", r"**\1**\2", pubtxt)  # 粗体结尾紧贴中文标点，md 认不出来，标点挪到外面
-    return page, pubtxt + "\n"
+    pubtxt = re.sub(r"==(.+?)==", lambda m: "**" + m.group(1).replace("**", "") + "**", "\n\n".join(pub))  # 平台不认 ==，发布版改成加粗；里面原有的粗体去掉，免得套两层
+    return page, "\n".join(fix_bold(x) for x in pubtxt.split("\n")) + "\n"
+
+
+def fix_bold(line):
+    """粗体结尾紧贴中文标点时 md 认不出来（显示成两个星号），把标点挪到粗体外面；按 ** 一对一对处理，一行几处都不串。"""
+    parts = line.split("**")
+    if len(parts) % 2 == 0:  # 星号不成对，不动
+        return line
+    out = [parts[0]]
+    for i in range(1, len(parts), 2):
+        core, tail = re.match(r"^(.*?)([，。！？、；：,.!?;:]*)$", parts[i], re.S).groups()
+        out.append((f"**{core}**" if core else "") + tail + parts[i + 1])
+    return "".join(out)
 
 
 def main(argv=None):
