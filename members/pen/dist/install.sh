@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # 执笔安装脚本（tools/pack.py 填好版本后生成 dist/install.sh）。不需要 gh，不需要登录。
-# 装、更新、修复：curl -fsSL https://raw.githubusercontent.com/yunjian-ai/yunjian-zimeiti/pen-v0.2.6/members/pen/dist/install.sh | bash
+# 装、更新、修复：curl -fsSL https://raw.githubusercontent.com/yunjian-ai/yunjian-zimeiti/pen-v0.3.0/members/pen/dist/install.sh | bash
 # 只体检、不改：  在 bash 后面加 -s -- --check
 # 当 Skill 用：   在 bash 前面加 PEN_SKILL_DIR=技能目录（比如 ~/.claude/skills）
 export GIT_TERMINAL_PROMPT=0
 MODE=${1:-install}
-T=pen-v0.2.6; R=https://github.com/yunjian-ai/yunjian-zimeiti
+T=pen-v0.3.0; R=https://github.com/yunjian-ai/yunjian-zimeiti
 RAW=https://raw.githubusercontent.com/yunjian-ai/yunjian-zimeiti/$T/members/pen/dist/recipe.json
 W=/tmp/yunjian-$T; RJ=/tmp/recipe-$T.json; rm -rf "${W:?}"
 git clone -q --depth 1 --branch "$T" "$R" "$W" 2>/dev/null && cp "$W/members/pen/dist/recipe.json" "$RJ" \
@@ -18,7 +18,7 @@ fi
 python3 - "$RJ" "$D" "$MODE" <<'PY'
 import hashlib, json, os, sys, time
 r = json.load(open(sys.argv[1], encoding="utf-8")); d, mode = sys.argv[2], sys.argv[3]
-assert r["version"] == "0.2.6", "版本不对"
+assert r["version"] == "0.3.0", "版本不对"
 ok = [s for s in r["skills"] if s["name"].startswith("pen-") and len(s["content"].encode()) <= 98304]
 assert len(ok) == len(r["skills"]), "技能校验没过"
 if not d:

@@ -7,7 +7,7 @@
 <p align="center">执笔 Pen · cloudmere · Grok Bot 口播稿、长文、仿写、去 AI 味、多平台改写助手 · 仓库 <a href="https://github.com/yunjian-ai/yunjian-zimeiti">github.com/yunjian-ai/yunjian-zimeiti</a></p>
 
 <p align="center">
-  <a href="CHANGELOG.md"><img alt="执笔" src="https://img.shields.io/badge/执笔-v0.2.6-c0392b"></a>
+  <a href="CHANGELOG.md"><img alt="执笔" src="https://img.shields.io/badge/执笔-v0.3.0-c0392b"></a>
   <a href="LICENSE"><img alt="license" src="https://img.shields.io/badge/license-CC%20BY%204.0%20%2B%20MIT-555555"></a>
   <a href="https://github.com/yunjian-ai/yunjian-zimeiti/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/yunjian-ai/yunjian-zimeiti/actions/workflows/ci.yml/badge.svg"></a>
 </p>
@@ -26,7 +26,7 @@
 
 ## 执笔 · Pen
 
-> 你讲一段亲身经历，它写成开口就抓人的口播、值得收藏的长文，再改成每个平台的版本；你没说过的事，一个字不编。
+> 你讲一段亲身经历，或者丢一篇好文章，它问清一句就交排好版、配好图的成品：开口就抓人的口播、值得收藏的长文；你没说过的事，一个字不编。
 
 **十三个技能，各干一步**
 
@@ -37,9 +37,9 @@
 | 3 | 参考进来 | 你丢来的视频、录音、文章、截图先变成文字，整理成素材 |
 | 4 | 选题与标题 | 从你的真事里挑写哪件，出 5 个标题推荐 1 个，标题里的数字都是你说过的 |
 | 5 | 骨架与开头 | 照爆款的节奏搭好骨架，出 3～5 个能留住人的开头让你挑 |
-| 6 | 出稿 | 写成整条口播或整篇长文，每句都标出是你哪句话，交稿前念一遍、跑一遍检查 |
+| 6 | 出稿 | 写成整条口播或整篇长文，一口气改好、配好图交成品；每句出处和检查记录放在自查记录里，想看再看 |
 | 7 | 改稿 | 轻改、深改两档，改到像你本人说的、闻不到 AI 味，不添一件事 |
-| 8 | 照参考仿写 | 贴写、借骨、取神三档，学人家的结构，写你自己的事 |
+| 8 | 照参考仿写 | 学人家的骨架，料换成新的：你的真事，或它上网找来、打开核对过、带链接的真实案例，再跟爆款库比、取更强的打法 |
 | 9 | 多平台改写 | 按平台重写标题、开头、篇幅、福利交付，清掉导流词 |
 | 10 | 配图和画面 | 封面方向、封面文字（数字和正文一字不差）、口播画面表、提示词或制作单 |
 | 11 | 发前自检 | 平台规则、AI 味、排版结构、缺什么，四问逐项给结论 |
@@ -61,7 +61,7 @@
 **手动安装**（能跑 shell 的 Bot；Claude Code 等在 `bash` 前加技能目录，如 `PEN_SKILL_DIR=~/.claude/skills bash`）：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/yunjian-ai/yunjian-zimeiti/pen-v0.2.6/members/pen/dist/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/yunjian-ai/yunjian-zimeiti/pen-v0.3.0/members/pen/dist/install.sh | bash
 ```
 
 **更新、修复、反馈**，都是一句话：
@@ -77,7 +77,7 @@ curl -fsSL https://raw.githubusercontent.com/yunjian-ai/yunjian-zimeiti/pen-v0.2
 
 | 系列 | 成员 | 职能 | 状态 |
 |---|---|---|---|
-| 万象 | 执笔 Pen | 写稿：口播、长文、仿写、多平台 | ✅ v0.2.6 |
+| 万象 | 执笔 Pen | 写稿：口播、长文、仿写、多平台 | ✅ v0.3.0 |
 | 万象 | 丹青 | 做图 | 规划中 |
 | 万象 | 掠影 | 做视频 | 规划中 |
 
@@ -91,9 +91,9 @@ curl -fsSL https://raw.githubusercontent.com/yunjian-ai/yunjian-zimeiti/pen-v0.2
 
 **要装插件或给密钥吗？** 写稿不用。抓取的付费兜底要你自己的密钥，存在你自己电脑上，用之前先问你。
 
-**会替我发布吗？** 不会。执笔只交文字和方案，发布由你来点。
+**会替我发布吗？** 不会。执笔交排好版的稿子和图，发布由你来点。
 
-**它会编故事吗？** 不会。料不够它先问你；每句交稿都附出处，检查脚本把料外的数字、说满的结果、改掉的完成状态当硬错拦。
+**它会编故事吗？** 不会。你的经历只用你说过的，缺了就删掉写通顺、告诉你可以补哪几句；别人的案例都带出处链接；每句都有出处，检查脚本把料外的数字、说满的结果、改掉的完成状态当硬错拦。
 
 **抓取要不要花钱？** 免费办法优先：抖音、X 能免费拿到正文和互动数，视频号能免费拿到数据。要视频、逐字稿、公众号阅读数时才用付费接口，先问你、你同意才用，密钥只放在你自己电脑上，不进聊天。
 
@@ -115,4 +115,4 @@ curl -fsSL https://raw.githubusercontent.com/yunjian-ai/yunjian-zimeiti/pen-v0.2
 
 ## English
 
-**Cloudmere (云间Bot · 万象)** is the content-creation series of Cloudmere, a set of members built for bots such as Grok Bot. Its first member, **Pen (执笔)**, turns things you actually did into short-video scripts and long-form posts that sound like you, then adapts them for each platform (Douyin, WeChat Channels, WeChat Official Accounts, X). Every sentence it delivers cites your own words; a bundled checker blocks invented facts, overstated results and changed completion states. It never publishes for you.
+**Cloudmere (云间Bot · 万象)** is the content-creation series of Cloudmere, a set of members built for bots such as Grok Bot. Its first member, **Pen (执笔)**, turns things you actually did into short-video scripts and long-form posts that sound like you, then adapts them for each platform (Douyin, WeChat Channels, WeChat Official Accounts, X). It asks one question, then hands back a finished, laid-out piece with images. When remaking an article, it keeps the structure and swaps in fresh, verified real-world cases with source links. Every fact is traced to your own words or a cited source; a bundled checker blocks invented facts, overstated results and changed completion states. It never publishes for you.

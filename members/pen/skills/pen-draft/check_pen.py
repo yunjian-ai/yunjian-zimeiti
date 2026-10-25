@@ -1,5 +1,5 @@
 """执笔交稿前的机械检查。只用标准库，只报不改。
-用法：python3 check_pen.py 稿子.txt [--material 料.txt …] [--form 口播|长文] [--seconds 60] [--platform 抖音] [--ad] [--source 原稿.txt --tier 1|2|3] [--json]
+用法：python3 check_pen.py 稿子.txt [--material 料.txt …] [--form 口播|长文] [--seconds 60] [--platform 抖音] [--ad] [--source 原稿.txt --tier 1|2|3] [--case 案例来源.txt …] [--json]
 稿子写 - 表示从标准输入读，不用建文件。标题写成「标题：…」一行会单独查长度，「约 N 字」「出处」这类交稿说明行自动跳过。
 两级：❌ 硬错（字数、长句、口播结尾没有收尾引导、料外数字、带货稿的极限词、功效承诺、导流、量产腔、翻案腔、名词化、黑话、标题超长），有一处退出码就是 1；
 ⚠️ 提醒（待问残留、料外概括、路标词、非带货稿的极限词、句长太齐、连词太密、「的」字长句、同头排比、比喻换场），要回原文判断，不算失败。
@@ -322,8 +322,8 @@ def check(doc):
             add("ANAPHORA", s.strip(), "同头排比（B1）")
     keep = lambda t: re.sub(r"[^0-9A-Za-z\u4e00-\u9fff]", "", MARK.sub("", t))  # 只比字，不比标点、空格和标记
 
-    def copy_runs(src, why):
-        a, b = keep(plain), keep(src)
+    def copy_runs(src, why, skip_quotes=False):  # skip_quotes：加了引号的当事人原话不算照搬
+        a, b = keep(re.sub(r"[「“\"][^」”\"]*[」”\"]", "", plain) if skip_quotes else plain), keep(src)
         grams = {b[i:i + COPY_RUN] for i in range(len(b) - COPY_RUN + 1)}
         i = 0
         while i <= len(a) - COPY_RUN:
@@ -337,6 +337,8 @@ def check(doc):
                 i += 1
     if doc.get("source"):
         copy_runs(doc["source"], "原稿（pen-remake：二三档要自己写）")
+    for n, case in enumerate(doc.get("cases") or [], 1):  # 上网找来的案例：句子自己写，只有加引号的原话可以照引（案例卡）
+        copy_runs(case, f"案例来源第 {n} 篇（案例卡：句子自己写，原话加引号）", skip_quotes=True)
     for name, card in doc.get("cards") or []:  # 借用爆款卡：只借公式，卡里摘的原句不搬
         copy_runs("\n".join(re.findall(r"「([^」]+)」", card)), f"爆款卡 {name} 的原句（pen-library 第 2 节：只借公式）")
     for w in SOURCE_TALK:
@@ -447,6 +449,7 @@ def main(argv=None):
     ap.add_argument("--ad", action="store_true", help="种草带货稿：极限词算硬错")
     ap.add_argument("--source", help="仿写的原稿：查和原稿连续 15 字以上相同")
     ap.add_argument("--tier", type=int, choices=[1, 2, 3], default=2, help="仿写档位：1 贴写（照搬只提醒）、2 借骨（默认）、3 取神")
+    ap.add_argument("--case", action="append", default=[], help="找来的案例的来源原文：查和来源连续 15 字以上相同（引号里的原话不算）")
     ap.add_argument("--cards", nargs="*", default=[], help="这次借用的爆款卡：查和卡里摘的原句连续 15 字以上相同")
     ap.add_argument("--json", action="store_true")
     a = ap.parse_args(argv)
@@ -462,7 +465,7 @@ def main(argv=None):
                 return str(hit[0])
         sys.exit(f"--cards 找不到卡：{c}（给卡文件路径，或库里有的卡 id）")
     doc = {"body": read(a.draft), "material": [read(p) for p in a.material], "form": a.form, "seconds": a.seconds, "platform": a.platform, "ad": a.ad,
-           "source": read(a.source) if a.source else None, "tier": a.tier,
+           "source": read(a.source) if a.source else None, "tier": a.tier, "cases": [read(p) for p in a.case],
            "cards": [(Path(card_path(p)).stem, read(card_path(p))) for p in a.cards]}
     issues = check(doc)
     hard = [i for i in issues if i["level"] == "硬"]
