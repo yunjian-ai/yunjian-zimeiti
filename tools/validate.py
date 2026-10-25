@@ -31,8 +31,16 @@ def check_member(m, root, errors):
         errors.append(f"[version] {name}: VERSION 缺失或不是 x.y.z")
     for readme in (root / "发布素材" / "README.md", root / "README.md"):  # 首页手动安装命令的标签要跟当前版本（v0.2.1 首页还写着 v0.2.0）
         if readme.exists():
-            for old in set(re.findall(rf"{name}-v(\d+\.\d+\.\d+)", readme.read_text(encoding="utf-8"))) - {ver}:
+            text = readme.read_text(encoding="utf-8")
+            for old in set(re.findall(rf"{name}-v(\d+\.\d+\.\d+)", text)) - {ver}:
                 errors.append(f"[version] {readme.relative_to(root)} 里写的是 {name}-v{old}，当前 VERSION 是 {ver}")
+            cn = ""  # 小标签、路线图这些写着成员中文名的行，版本号也要跟当前版本（v0.2.4 前路线图、小标签一直停在 v0.2.0）
+            if (m / "profile.json").exists():
+                cn = re.split(r"\s*[·｜]", json.loads((m / "profile.json").read_text(encoding="utf-8")).get("name", ""))[0].strip()
+            for line in text.splitlines() if cn else []:
+                if cn in line and "English" not in line:
+                    for old in set(re.findall(r"(?<![\w.-])v(\d+\.\d+\.\d+)", line)) - {ver}:
+                        errors.append(f"[version] {readme.relative_to(root)} 写{cn}的那行还是 v{old}，当前 VERSION 是 {ver}：{line.strip()[:40]}")
     prof = m / "profile.json"
     if not prof.exists():
         errors.append(f"[profile] {name}: 缺 profile.json")
