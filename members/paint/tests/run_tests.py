@@ -342,6 +342,18 @@ with tempfile.TemporaryDirectory() as t:
     库管.save_stats(root, st)
     report(库管.due(root) == {}, "库管：归纳过的不再提")
     report(库管.main(["记", "x", "收藏", str(root)]) == 2, "库管：只认「用过」「选中」")
+    # v0.3.1：上限照公式出算式；进度只用脚本写（Grok Bot 实测：进度.md 只写了一行进度条）
+    report(库管.limit(5, 2, 1) == (7, "成品 5 张 − 能裁、能抠的 2 张 ＋ 新母版 1×2 ＋ 重画 2 ＝ 7"), "库管：上限算式（5 张、2 张能裁、1 个新母版）", f"{库管.limit(5, 2, 1)}")
+    report(库管.limit(1, masters=1)[0] == 5 and 库管.limit(3, keep=1)[0] == 8 and 库管.main(["上限", "2", "--不花", "3"]) == 2, "库管：上限其他算法和乱填")
+    text, warn = 库管.progress(root, "围巾", {"现在": "② 母版 ⏸ 等主人确认", "出图": "1/7", "下一步": "等主人回「都对」", "母版": "商品 围巾（草稿）"})
+    text, warn = 库管.progress(root, "围巾", {"出图": "1/7"}, "皮标改到左下角，身份证 v2")
+    report(text.count("\n- ") == 2 and "皮标改到左下角" in text and "母版：商品 围巾（草稿）" in text and "下一步：等主人回「都对」" in text and not warn, "库管：进度合并旧项、经过里追加", text)
+    report(库管.progress(root, "围巾", {"出图": "9/7"})[1].startswith("⚠️"), "库管：出图超上限提醒")
+    report(库管.main(["进度", "新单", "--现在", "x", "--库", str(root)]) == 2 and not (root / "作品" / "新单" / "进度.md").exists(), "库管：缺下一步、出图不写文件")
+    report(库管.main(["进度", "围巾", "--出图", "三次", "--库", str(root)]) == 2, "库管：出图写不成几/几要报")
+    report([n for n, _ in 库管.unfinished(root)] == ["围巾"], "库管：没做完的单列出来")
+    库管.progress(root, "围巾", {"现在": "⑤ 交付 ✅"})
+    report(库管.unfinished(root) == [], "库管：交付完的不再列")
     bad = Path(t) / "my-ref-x.md"
     bad.write_text((LIB / "参考" / "ref-kapian-jinju.md").read_text(encoding="utf-8").replace("## 为什么好用\n", ""), encoding="utf-8")
     errs = check_card(bad)
