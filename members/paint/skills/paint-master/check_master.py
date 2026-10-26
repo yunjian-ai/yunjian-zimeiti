@@ -1,6 +1,10 @@
 """查一个母版文件夹齐不齐、能不能入库（只用标准库）。
 用法：python3 check_master.py <母版文件夹> [<母版文件夹> …]
-身份证「状态」是「草稿」时只查结构；是「入库」时还要：不许改没有占位、3 张样张、验收.md 最后结论「全对，入库」。
+身份证「状态」四种（规划书 v1.5 决策 36、38）：
+  草稿      还没给主人看——只查结构
+  主人确认  主人看过母版板说对（一次性的系列到这一步就能出图）——还要：不许改没有占位、有母版板、推测项都看过
+  丹青自查  主人说「直接出」，丹青自己照验收打分表对原图验过——还要：不许改没有占位、验收.md 最后一行「结论：全对」
+  入库      要反复用的母版——还要：不许改没有占位、3 张样张、验收.md 最后结论「全对，入库」
 有问题打印 ❌ 并以 1 退出；只有提醒（⚠️）照样算过。"""
 import re
 import sys
@@ -10,6 +14,7 @@ KINDS = ["商品", "人物", "场景", "风格", "品牌", "版式", "服装道�
 IMG = {".png", ".jpg", ".jpeg", ".webp"}
 NEED_BOARD = {"商品", "人物", "场景"}  # 风格用代表图、品牌用原件，不生成母版板
 NEED_SAMPLES = {"商品", "人物", "场景", "风格"}
+STATES = ["草稿", "主人确认", "丹青自查", "入库"]
 
 
 def images(d):
@@ -48,8 +53,8 @@ def check(folder):
             errs.append(f"身份证卡头缺「{k}」")
     if kind and kind not in KINDS:
         errs.append(f"种类「{kind}」不在 {KINDS} 里")
-    if state not in ("草稿", "入库"):
-        errs.append(f"状态只能是「草稿」或「入库」，写的是「{state}」")
+    if state not in STATES:
+        errs.append(f"状态只能是 {'／'.join(STATES)}，写的是「{state}」")
     if not images(f / "原件"):
         errs.append("原件/ 里没有主人给的原图")
     if kind in NEED_BOARD and not (f / "母版板.png").exists() and not images(f / "单张"):
@@ -62,20 +67,30 @@ def check(folder):
         errs.append("身份证少了「## 推测」一节（没有推测项也要留这一节，写「无」）")
     if not (f / "版本.md").exists():
         errs.append("没有 版本.md")
-    if state == "入库":
+    if state in ("主人确认", "丹青自查", "入库"):
         holes = [x for x in sec.get("不许改", []) if "【" in x]
         if holes:
-            errs.append(f"入库了「不许改」还有没填的：{holes[0][:30]}")
-        if kind in NEED_SAMPLES and len(images(f / "样张")) < 3:
-            errs.append(f"入库要 3 张验收样张，样张/ 里只有 {len(images(f / '样张'))} 张")
-        if kind in NEED_SAMPLES:
-            v = f / "验收.md"
-            lines = [x.strip() for x in v.read_text(encoding="utf-8").splitlines() if x.strip()] if v.exists() else []
-            if not lines or not re.search(r"结论[:：]\s*全对，入库", lines[-1]):
-                errs.append("验收.md 最后一行不是「结论：全对，入库」——没验过不能入库")
+            errs.append(f"{state}了「不许改」还有没填的：{holes[0][:30]}")
+    lines = []
+    if kind in NEED_SAMPLES and state in ("丹青自查", "入库"):
+        v = f / "验收.md"
+        lines = [x.strip() for x in v.read_text(encoding="utf-8").splitlines() if x.strip()] if v.exists() else []
+    if state == "主人确认":
+        if kind in NEED_BOARD and not (f / "母版板.png").exists():
+            errs.append("主人确认要有 母版板.png（主人看的就是它）")
         open_guess = [x for x in sec.get("推测", []) if x.endswith("推测")]
         if open_guess:
-            warns.append(f"{len(open_guess)} 条推测主人还没看过（入库后给主人看一眼，确认了改「主人确认」）")
+            errs.append(f"{len(open_guess)} 条推测主人还没看过——主人确认时推测项一起看，看过的改「主人确认」")
+    if state == "丹青自查" and kind in NEED_SAMPLES and (not lines or not re.search(r"结论[:：]\s*全对", lines[-1])):
+        errs.append("验收.md 最后一行不是「结论：全对」——主人说直接出，丹青也要先自己验过")
+    if state == "入库":
+        if kind in NEED_SAMPLES and len(images(f / "样张")) < 3:
+            errs.append(f"入库要 3 张验收样张，样张/ 里只有 {len(images(f / '样张'))} 张")
+        if kind in NEED_SAMPLES and (not lines or not re.search(r"结论[:：]\s*全对，入库", lines[-1])):
+            errs.append("验收.md 最后一行不是「结论：全对，入库」——没验过不能入库")
+        open_guess = [x for x in sec.get("推测", []) if x.endswith("推测")]
+        if open_guess:
+            warns.append(f"{len(open_guess)} 条推测主人还没看过（给主人看一眼，确认了改「主人确认」）")
     return errs, warns
 
 

@@ -161,7 +161,8 @@ def check_member(m, root, errors):
     if total > LIM["total_bytes"]:
         errors.append(f"[budget] {name}: 合计 {total} 字节 > {LIM['total_bytes']}")
     # 交叉引用：提到的本成员技能名、反引号里的 .md 文件都要存在
-    files = {p.name for p in root.rglob("*.md")}
+    # 只在成员自己的包、共用规范里找（不算考试记录、资料里碰巧同名的文件——那些不随包发出去，公开版里会对不上）
+    files = {p.name for d in (root / "members", root / "shared") if d.is_dir() for p in d.rglob("*.md")}
     pool = dict(corpus)
     if (m / "memory.md").exists():
         pool["memory.md"] = (m / "memory.md").read_text(encoding="utf-8")

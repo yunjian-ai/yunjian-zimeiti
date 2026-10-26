@@ -8,7 +8,7 @@
 
 <p align="center">
   <a href="CHANGELOG.md"><img alt="执笔" src="https://img.shields.io/badge/执笔-v0.3.4-c0392b"></a>
-  <a href="CHANGELOG.md"><img alt="丹青" src="https://img.shields.io/badge/丹青-v0.2.1-2f6f9f"></a>
+  <a href="CHANGELOG.md"><img alt="丹青" src="https://img.shields.io/badge/丹青-v0.3.0-2f6f9f"></a>
   <a href="LICENSE"><img alt="license" src="https://img.shields.io/badge/license-CC%20BY%204.0%20%2B%20MIT-555555"></a>
   <a href="https://github.com/yunjian-ai/yunjian-zimeiti/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/yunjian-ai/yunjian-zimeiti/actions/workflows/ci.yml/badge.svg"></a>
 </p>
@@ -51,7 +51,7 @@
 
 ## 丹青 · Paint
 
-> 你说一句要什么图，它自己判是单图还是系列图：单图（不用锁同一个人、同一件货）理清你的意思、写好提示词直接出；系列图先理成需求单、立好母版，同一件货、同一个人换多少张都还是它。都照抖店、微信小店、小红书、抖音、公众号的官方规格，只出你要的那几张；字和 logo 你自己拖着调。
+> 你说一句要什么图，它自己判是单图还是系列图：单图（不用锁同一个人、同一件货）理清你的意思、写好提示词直接出；系列图先理成需求单、立好母版给你确认（每一步都有进度条），同一件货、同一个人换多少张都还是它。都照抖店、微信小店、小红书、抖音、公众号的官方规格，只出你要的那几张；字和 logo 你自己拖着调。
 
 **七个技能，各干一步**
 
@@ -59,7 +59,7 @@
 |---|---|---|
 | 1 | 第一次见面 | 一次问一件：做什么、发哪些平台、有没有 logo 和品牌色、出图用什么，建好视觉档案；支持「演练」 |
 | 2 | 接需求 | 自己判单图还是系列图，不让你选；单图三四行讲清理解就出，系列图一轮问清主体、平台、要哪几种图、景、品牌元素、参考，每项带推荐；只出你说到的，不默认整套 |
-| 3 | 立母版 | 一张原图立成商品四面板、人物定妆、场景多机位；细节从原图裁，看不到的标「推测」，换 3 个场景验过才入库 |
+| 3 | 立母版 | 一张原图立成商品四面板、人物定妆、场景多机位；细节从原图裁，看不到的标「推测」；一条消息给你确认，对了才往下出 |
 | 4 | 按需出图 | 电商主图、白底、详情，各平台封面、配图、小红书卡片、海报、直播封面；模型画底图，字和 logo 做图层，裁成官方像素 |
 | 5 | 拖着调 | 每张图附一个网页：字、logo、色块拖着挪、拉角改大小、双击改字，导出成品或把改动发回 |
 | 6 | 出图自检 | 像素、比例、大小、白底、张数脚本查；系列图的颜色、印花、字、配件数对着母版看；平台对字的要求只提醒 |
@@ -82,7 +82,7 @@
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/yunjian-ai/yunjian-zimeiti/pen-v0.3.4/members/pen/dist/install.sh | bash
-curl -fsSL https://raw.githubusercontent.com/yunjian-ai/yunjian-zimeiti/paint-v0.2.1/members/paint/dist/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/yunjian-ai/yunjian-zimeiti/paint-v0.3.0/members/paint/dist/install.sh | bash
 ```
 
 **更新、修复、反馈**，都是一句话：
@@ -99,7 +99,7 @@ curl -fsSL https://raw.githubusercontent.com/yunjian-ai/yunjian-zimeiti/paint-v0
 | 系列 | 成员 | 职能 | 状态 |
 |---|---|---|---|
 | 万象 | 执笔 Pen | 写稿：口播、长文、仿写、多平台 | ✅ v0.3.4 |
-| 万象 | 丹青 Paint | 做图：单图直接出，系列图立母版锁人锁货，按平台规格出图、拖着调 | ✅ v0.2.1 |
+| 万象 | 丹青 Paint | 做图：单图直接出，系列图立母版锁人锁货，按平台规格出图、拖着调 | ✅ v0.3.0 |
 | 万象 | 掠影 | 做视频 | 规划中 |
 
 起元系列（提示词、Skill、蒸馏、本体、验证、统筹）在 [yunjian-ai/yunjian](https://github.com/yunjian-ai/yunjian)。
@@ -136,4 +136,4 @@ curl -fsSL https://raw.githubusercontent.com/yunjian-ai/yunjian-zimeiti/paint-v0
 
 ## English
 
-**Cloudmere (云间Bot · 万象)** is the content-creation series of Cloudmere, a set of members built for bots such as Grok Bot. Its first member, **Pen (执笔)**, turns things you actually did into short-video scripts and long-form posts that sound like you, then adapts them for each platform (Douyin, WeChat Channels, WeChat Official Accounts, X). It asks one question, then hands back a finished, laid-out piece with images. When remaking an article, it keeps the structure and swaps in fresh, verified real-world cases with source links. Every fact is traced to your own words or a cited source; a bundled checker blocks invented facts, overstated results and changed completion states. It never publishes for you. Its second member, **Paint (丹青)**, turns a one-line request and a single product or model photo into on-spec images for Douyin shops, WeChat shops, Xiaohongshu, Douyin and WeChat Official Accounts: it decides on its own whether a request is a single image or a series: a single image goes straight from a short restatement and a precise prompt to the picture, while a series gets a brief and a reusable master of the product or person so every shot stays consistent; it makes only the images you asked for, and gives you a page to drag text and logos into place.
+**Cloudmere (云间Bot · 万象)** is the content-creation series of Cloudmere, a set of members built for bots such as Grok Bot. Its first member, **Pen (执笔)**, turns things you actually did into short-video scripts and long-form posts that sound like you, then adapts them for each platform (Douyin, WeChat Channels, WeChat Official Accounts, X). It asks one question, then hands back a finished, laid-out piece with images. When remaking an article, it keeps the structure and swaps in fresh, verified real-world cases with source links. Every fact is traced to your own words or a cited source; a bundled checker blocks invented facts, overstated results and changed completion states. It never publishes for you. Its second member, **Paint (丹青)**, turns a one-line request and a single product or model photo into on-spec images for Douyin shops, WeChat shops, Xiaohongshu, Douyin and WeChat Official Accounts: it decides on its own whether a request is a single image or a series: a single image goes straight from a short restatement and a precise prompt to the picture, while a series gets a brief, a progress bar, and a reusable master of the product or person that you confirm before any finished image is made, so every shot stays consistent; it makes only the images you asked for, and gives you a page to drag text and logos into place.

@@ -37,7 +37,7 @@ for f in sorted((HERE / "fixtures").glob("*.json")):
 _rec = json.loads((HERE.parent / "dist" / "recipe.json").read_text(encoding="utf-8"))
 _files = {s["name"]: s["files"] for s in _rec["skills"]}
 report(all(f"身份证/{k}.md" in _files["paint-master"] for k in ("商品", "人物", "场景", "风格", "品牌")), "打包：身份证模板 5 份都在安装包里")
-report({"借用/图片卡.md", "借用/规则卡.md", "单图卡.md"} <= set(_files["paint-make"]) and "判档卡.md" in _files["paint-brief"],
+report({"借用/图片卡.md", "借用/规则卡.md", "单图卡.md"} <= set(_files["paint-make"]) and {"判档卡.md", "系列流程卡.md"} <= set(_files["paint-brief"]),
        "打包：单图卡、判档卡、借来的青鸟两张卡都在安装包里")
 
 # ①½ 命令行：有问题退出码 1，没问题 0
@@ -162,7 +162,14 @@ def make_master(root, state="入库", samples=3, verdict="结论：全对，入�
 
 for name, kw, want in [("合格入库", {}, None), ("草稿不查样张", {"state": "草稿", "samples": 0, "verdict": "还没验"}, None),
                        ("入库少样张", {"samples": 2}, "样张"), ("入库没验过", {"verdict": "结论：不过（印花）"}, "全对，入库"),
-                       ("入库还有占位", {"hole": True}, "没填")]:
+                       ("入库还有占位", {"hole": True}, "没填"),
+                       # v1.5：一次性的系列，主人看过母版板说对就能出图，不要 3 张验收样张
+                       ("主人确认不要样张", {"state": "主人确认", "samples": 0, "verdict": "还没验"}, None),
+                       ("主人确认但推测没看", {"state": "主人确认", "samples": 0, "guess": "推测"}, "推测"),
+                       ("主人确认还有占位", {"state": "主人确认", "samples": 0, "hole": True}, "没填"),
+                       ("直接出丹青自查过", {"state": "丹青自查", "samples": 0, "verdict": "结论：全对"}, None),
+                       ("直接出没自查", {"state": "丹青自查", "samples": 0, "verdict": "还没验"}, "全对"),
+                       ("状态乱写", {"state": "已确认"}, "状态只能是")]:
     with tempfile.TemporaryDirectory() as t:
         errs, warns = check_master.check(make_master(t, **kw))
         report((not errs) if want is None else any(want in e for e in errs), f"母版检查：{name}", f"{errs}")
