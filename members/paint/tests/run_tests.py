@@ -216,6 +216,8 @@ with tempfile.TemporaryDirectory() as t:
     report(叠图.find_font("思源宋体", files=[Path("/x/PingFang.ttc"), Path("/x/SourceHanSerifSC-Regular.otf")]).name.startswith("SourceHanSerif"),
            "叠图：字体按名字优先找对应字体")
     report(叠图.find_font(None, files=[Path("/x/Arial.ttf")]) is None, "叠图：没有中文字体返回空（不拿英文字体硬画）")
+report(叠图.find_font("Anton", files=[Path("/x/PingFang.ttc"), Path("/x/Anton-Regular.ttf")]).name == "Anton-Regular.ttf",
+       "叠图：英文特粗窄体 Anton 按名字找得到")
 
 # ⑦ paint-adjust：调图网页生成、收改动（改动记录是 10-25 在浏览器里真拖出来的那段，前后加了主人随手打的字）
 sys.path.insert(0, str(HERE.parent / "skills" / "paint-adjust"))
@@ -233,6 +235,12 @@ with tempfile.TemporaryDirectory() as t:
     page = 调图页.build(t / "底.png", t / "图层.json", t / "调图.html", "测试", (1080, 1440), [0.04, 0.04, 0.92, 0.92])
     html = Path(page).read_text(encoding="utf-8")
     report("__DATA__" not in html and '"rect"' in html and "data:image/png;base64" in html, "调图网页：数据、色块、图片都嵌进去了")
+    (t / "Anton-Regular.ttf").write_bytes(b"\x00\x01\x00\x00fake-font")
+    lay2 = lay + [{"id": "大字", "type": "text", "text": "NEON", "x": 0.1, "y": 0.3, "w": 0.8, "h": 0.4, "font": "Anton", "fontFile": "Anton-Regular.ttf"}]
+    (t / "图层2.json").write_text(json.dumps(lay2, ensure_ascii=False), encoding="utf-8")
+    html2 = Path(调图页.build(t / "底.png", t / "图层2.json", t / "调图2.html", "测试")).read_text(encoding="utf-8")
+    report('@font-face{font-family:"Anton"' in html2 and "data:font/ttf;base64," in html2 and '"text": "NEON"' in html2 and "fontFile" not in html2,
+           "调图网页：带字体文件的大字嵌进字体、还是文字层（能双击改字）")
     pasted = ('好了，我调好了 {"图":"测试封面","尺寸":[1080,1440],"改动":[{"图层":"标题","类型":"文字","原位置":{"x":0.06,"y":0.11,"w":0.88,"h":0.16},'
               '"新位置":{"x":0.06,"y":0.274,"w":0.88,"h":0.16},"文字":"一件开衫穿出三种样子"},'
               '{"图层":"cut1","类型":"圈选的图里东西","原位置":{"x":0.3,"y":0.4,"w":0.1,"h":0.1},"新位置":{"x":0.6,"y":0.4,"w":0.1,"h":0.1}}],'

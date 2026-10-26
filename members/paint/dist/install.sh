@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # 丹青安装脚本（tools/pack.py 填好版本后生成 dist/install.sh）。不需要 gh，不需要登录。
-# 装、更新、修复：curl -fsSL https://raw.githubusercontent.com/yunjian-ai/yunjian-zimeiti/paint-v0.1.1/members/paint/dist/install.sh | bash
+# 装、更新、修复：curl -fsSL https://raw.githubusercontent.com/yunjian-ai/yunjian-zimeiti/paint-v0.1.2/members/paint/dist/install.sh | bash
 # 只体检、不改：  在 bash 后面加 -s -- --check
 # 当 Skill 用：   在 bash 前面加 PAINT_SKILL_DIR=技能目录（比如 ~/.claude/skills）
 export GIT_TERMINAL_PROMPT=0
 MODE=${1:-install}
-T=paint-v0.1.1; R=https://github.com/yunjian-ai/yunjian-zimeiti
+T=paint-v0.1.2; R=https://github.com/yunjian-ai/yunjian-zimeiti
 RAW=https://raw.githubusercontent.com/yunjian-ai/yunjian-zimeiti/$T/members/paint/dist/recipe.json
 W=/tmp/yunjian-$T; RJ=/tmp/recipe-$T.json; rm -rf "${W:?}"
 git clone -q --depth 1 --branch "$T" "$R" "$W" 2>/dev/null && cp "$W/members/paint/dist/recipe.json" "$RJ" \
@@ -18,7 +18,7 @@ fi
 python3 - "$RJ" "$D" "$MODE" <<'PY'
 import hashlib, json, os, sys, time
 r = json.load(open(sys.argv[1], encoding="utf-8")); d, mode = sys.argv[2], sys.argv[3]
-assert r["version"] == "0.1.1", "版本不对"
+assert r["version"] == "0.1.2", "版本不对"
 ok = [s for s in r["skills"] if s["name"].startswith("paint-") and len(s["content"].encode()) <= 98304]
 assert len(ok) == len(r["skills"]), "技能校验没过"
 if not d:
@@ -30,6 +30,7 @@ for s in ok:
     for n, t in s.get("files", {}).items():
         want[s["name"] + "/" + n] = t
 fp = lambda t: hashlib.sha256(t.encode()).hexdigest()[:16]
+same = lambda a, b: a is not None and b is not None and [x.rstrip() for x in a.replace("\r\n", "\n").strip().split("\n")] == [x.rstrip() for x in b.replace("\r\n", "\n").strip().split("\n")]  # 平台存技能时会动换行和行尾空白，这种不算改过
 state_file = os.path.join(d, "paint-install", ".yunjian-installed.json")
 try:
     old = json.load(open(state_file, encoding="utf-8"))
@@ -42,7 +43,7 @@ def now(rel):
         return None
 if mode == "--check":
     missing = [k for k in want if now(k) is None]
-    changed = [k for k in want if now(k) not in (None, want[k])]
+    changed = [k for k in want if now(k) is not None and not same(now(k), want[k])]
     print("CHECK", "OK" if not missing and not changed else "PROBLEM", "装的版本", old.get("version", "不知道"), "对照", r["tag"])
     print("MISSING", ",".join(missing) or "-")
     print("CHANGED", ",".join(changed) or "-")
@@ -52,7 +53,7 @@ backup = os.path.join(os.path.expanduser("~"), "yunjian-backup", "paint-" + time
 saved = []
 for k, t in want.items():
     cur = now(k)
-    if cur is not None and cur != t and old.get("files", {}).get(k) not in (None, fp(cur)):
+    if cur is not None and not same(cur, t) and old.get("files", {}).get(k) not in (None, fp(cur)):
         os.makedirs(os.path.dirname(os.path.join(backup, k)), exist_ok=True)
         open(os.path.join(backup, k), "w", encoding="utf-8").write(cur); saved.append(k)
     os.makedirs(os.path.dirname(os.path.join(d, k)), exist_ok=True)

@@ -1,7 +1,8 @@
 """出一张「拖着调」的网页：底图＋可拖动的图层，主人在浏览器里自己挪、缩放、圈选，导出图片或把改动发回丹青。只用标准库。
 用法：python3 调图页.py 底图.png 图层.json -o 调图.html [--title 名字] [--size 750x1000] [--safe x,y,w,h]
 图层.json：和 paint-make 的叠图.py 同一个格式（见 paint-make 图类写法卡最后一节）：text、image、rect 三种，
-坐标都是占整张图的比例（0～1）。--size 是导出尺寸（照平台规格标准）；不写就用底图原尺寸。"""
+坐标都是占整张图的比例（0～1）。--size 是导出尺寸（照平台规格标准）；不写就用底图原尺寸。
+文字图层写了 fontFile（字体文件，相对图层.json）：字体整个嵌进网页，主人电脑没装这款字也照样显示、能双击改字。"""
 import argparse
 import base64
 import json
@@ -36,13 +37,22 @@ def build(base, layers, out, title="", size=None, safe=None):
     w, h = size or png_size(base)
     folder = Path(layers).parent if isinstance(layers, (str, Path)) else Path(".")
     ls = json.loads(Path(layers).read_text(encoding="utf-8")) if isinstance(layers, (str, Path)) else layers
+    faces = {}
     for L in ls:
         if L.get("type") == "image" and not str(L.get("src", "")).startswith("data:"):
             L["src"] = data_uri(folder / L["src"])
+        if L.get("type") == "text" and L.get("fontFile"):
+            f = folder / L.pop("fontFile")
+            L["font"] = L.get("font") or f.stem
+            fmt = {".otf": "opentype", ".woff2": "woff2", ".woff": "woff"}.get(f.suffix.lower(), "truetype")
+            faces[L["font"]] = f'@font-face{{font-family:"{L["font"]}";src:url(data:font/{f.suffix.lower()[1:]};base64,{base64.b64encode(f.read_bytes()).decode()}) format("{fmt}")}}'
+
     d = {"title": title, "width": w, "height": h, "base": data_uri(base), "layers": ls}
     if safe:
         d["safe"] = dict(zip("xywh", safe))
     page = (HERE / "调图模板.html").read_text(encoding="utf-8").replace("__DATA__", json.dumps(d, ensure_ascii=False).replace("</", "<\\/"))
+    if faces:
+        page = page.replace("</style>", "\n".join(faces.values()) + "\n</style>", 1)
     Path(out).write_text(page, encoding="utf-8")
     return out
 

@@ -1,5 +1,5 @@
 """安装脚本实测（shared/安装写法.md 第 7 条）：各位成员的 dist/install.sh 在临时文件夹里走一遍
-装 → 体检 OK → 删一个、改一个 → 体检报出来 → 重装修好、改过的先备份 → 再体检 OK；升级时没改过的旧文件不备份。
+装 → 体检 OK → 删一个、改一个 → 体检报出来 → 重装修好、改过的先备份 → 再体检 OK；升级时没改过的旧文件不备份；只差换行和行尾空白不算改过。
 只用标准库，不联网（直接跑脚本里的 Python 那段，配方用本地 dist/recipe.json）。
 用法：python3 tools/test_install.py"""
 import json
@@ -51,7 +51,15 @@ def check_member(member):
         st["files"][f"{first}/SKILL.md"] = hashlib.sha256("上一版的原样".encode()).hexdigest()[:16]
         state.write_text(json.dumps(st, ensure_ascii=False), encoding="utf-8")
         assert "BACKUP" not in run(code, recipe, skills, "install", home)
-    print(f"✅ {member}：装、体检、修复、备份、升级不误备份")
+        # 平台存技能时动了换行、行尾空白（内容一样）→ 体检 OK、不备份（10-25 Grok Bot 实测误备份过）
+        sk = skills / first / "SKILL.md"
+        sk.write_text(sk.read_text(encoding="utf-8").replace("\n", "  \r\n") + "\n\n", encoding="utf-8")
+        st = json.loads(state.read_text(encoding="utf-8"))
+        st["files"][f"{first}/SKILL.md"] = "别的指纹"
+        state.write_text(json.dumps(st, ensure_ascii=False), encoding="utf-8")
+        assert run(code, recipe, skills, "--check", home).startswith("CHECK OK")
+        assert "BACKUP" not in run(code, recipe, skills, "install", home)
+    print(f"✅ {member}：装、体检、修复、备份、升级不误备份、换行空白不算改过")
 
 
 if __name__ == "__main__":

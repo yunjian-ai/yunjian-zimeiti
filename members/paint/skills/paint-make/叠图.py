@@ -21,6 +21,8 @@ FAMILIES = {  # 图层里写的字体名 -> 文件名里找这些词（按先后
     "思源宋体": ["SourceHanSerif", "NotoSerifCJK", "NotoSerifSC", "Songti", "STSong"],
     "思源黑体": ["SourceHanSans", "NotoSansCJK", "NotoSansSC", "PingFang", "STHeiti", "Hiragino Sans GB", "wqy"],
     "阿里巴巴普惠体": ["AlibabaPuHuiTi", "Alibaba-PuHuiTi", "PingFang", "NotoSansCJK"],
+    "Anton": ["Anton"],  # 英文特粗窄体（库卡 brand-font-anton），只有英文字母
+    "Bebas Neue": ["BebasNeue", "Bebas"],  # 英文特粗窄体（库卡 brand-font-bebas），只有大写字母
 }
 ANY_CJK = ["SourceHanSans", "NotoSansCJK", "NotoSansSC", "PingFang", "STHeiti", "Hiragino Sans GB", "Songti", "wqy", "SourceHanSerif"]
 
@@ -102,7 +104,7 @@ def compose(base, layers_path, out, font_path=None):
                 pic = pic.resize((max(1, round(pic.width * s)), max(1, round(pic.height * s))), Image.LANCZOS)
                 im.alpha_composite(pic, (round(x + (w - pic.width) / 2), round(y + (h - pic.height) / 2)))
         elif t == "text":
-            path = Path(font_path) if font_path else find_font(L.get("font"), files)
+            path = Path(font_path) if font_path else (folder / L["fontFile"]) if L.get("fontFile") else find_font(L.get("font"), files)
             if not path:
                 print("NO_FONT 找不到中文字体：改交底图＋调图网页（网页用主人电脑的字体），或 --font 指定字体文件")
                 return 3
