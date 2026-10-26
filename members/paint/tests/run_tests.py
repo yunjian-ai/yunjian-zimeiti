@@ -399,6 +399,62 @@ with tempfile.TemporaryDirectory() as t:
     report(any("和文件名不一致" in e for e in errs) and any("为什么好用" in e for e in errs), "单卡检查：id 不对、少小节都报", f"{errs}")
     report(check_card(LIB / "参考" / "ref-kapian-jinju.md") == [], "单卡检查：公共库的卡过")
 
+# ⑦ paint-make：后期（PhotoCraft）。不装也要过的先测；装了 PhotoCraft 再真排一张、真换一次色
+import 后期  # noqa: E402
+
+report(后期.rect4("1,2,3,4") == [1, 2, 3, 4] and 后期.rect4("1，2，3，4") == [1, 2, 3, 4], "后期：框参数认中英文逗号")
+try:
+    后期.rect4("1,2,3")
+    report(False, "后期：框少一个数要报错")
+except Exception:  # noqa: BLE001
+    report(True, "后期：框少一个数要报错")
+report(all(re.fullmatch(r"[0-9a-f]{64}", v[1]) and v[0].startswith("photocraft") for v in 后期.PACKS.values())
+       and {("Darwin", "any"), ("Linux", "x86_64"), ("Linux", "aarch64")} <= set(后期.PACKS), "后期：Mac、Linux 两种 CPU 的官方包和校验值都在")
+with tempfile.TemporaryDirectory() as t:
+    env = {"PATH": "/usr/bin:/bin", "HOME": t, "PHOTOCRAFT_CLI": str(Path(t) / "没有")}
+    r = subprocess.run([sys.executable, str(HERE.parent / "skills" / "paint-make" / "后期.py"), "排版", "a.jpg", "b.json", "-o", "c.png"],
+                       capture_output=True, text=True, env=env)
+    report(r.returncode == 3 and "NO_TOOL" in r.stdout and "叠图.py" in r.stdout, "后期：没有 PhotoCraft 时退出码 3、指去叠图.py", r.stdout + r.stderr)
+    bebas = [f for f in (后期.user_font_dir().glob("BebasNeue*.ttf") if 后期.user_font_dir().exists() else [])]
+    if bebas:
+        report(后期.font_name(bebas[0])[0] == "Bebas Neue", "后期：从字体文件读出字族名", f"{后期.font_name(bebas[0])}")
+
+cli = 后期.find_cli()
+if not cli:
+    print("（本机没有 PhotoCraft，跳过后期真排）")
+else:
+    with tempfile.TemporaryDirectory() as t:
+        flat_png(Path(t) / "底.png", 300, 300, (240, 235, 225))
+        flat_png(Path(t) / "logo.png", 40, 40, (200, 30, 30))
+        (Path(t) / "图层.json").write_text(json.dumps([
+            {"id": "带", "type": "rect", "x": 0, "y": 0.85, "w": 1, "h": 0.15, "gradient": ["#1A1A1A", "#3A0E0E"]},
+            {"id": "标题", "type": "text", "text": "冬天穿也不扎", "x": 0.08, "y": 0.06, "w": 0.6, "h": 0.12, "gradient": ["#E0282F", "#7A0A12"],
+             "outline": {"color": "#FFFFFF", "width": 3}, "shadow": {"opacity": 40}},
+            {"id": "竖排", "type": "text", "text": "秋冬新款", "x": 0.86, "y": 0.2, "w": 0.08, "h": 0.4, "color": "#C8102E", "vertical": True},
+            {"id": "贴", "type": "burst", "x": 0.7, "y": 0.04, "w": 0.24, "h": 0.24, "color": "#E5322D"},
+            {"id": "价", "type": "text", "text": "¥129", "x": 0.72, "y": 0.1, "w": 0.2, "h": 0.08, "color": "#FFFFFF"},
+            {"id": "原价", "type": "text", "text": "¥199", "x": 0.74, "y": 0.2, "w": 0.16, "h": 0.05, "strike": True},
+            {"id": "圆", "type": "image", "src": "logo.png", "shape": "circle", "x": 0.08, "y": 0.5, "w": 0.22, "h": 0.22, "outline": {"color": "#FFFFFF", "width": 3}},
+            {"id": "券", "type": "rect", "x": 0.3, "y": 0.87, "w": 0.4, "h": 0.1, "color": "#FFF3E6", "radius": 0.2, "notch": True,
+             "stroke": {"color": "#C8102E", "width": 2, "dash": True}},
+            {"id": "徽", "type": "ellipse", "x": 0.6, "y": 0.5, "w": 0.2, "h": 0.2, "color": "#1A1A1A", "glow": {"color": "#FF5A4E"}},
+        ], ensure_ascii=False), encoding="utf-8")
+        code = 后期.main(["排版", str(Path(t) / "底.png"), str(Path(t) / "图层.json"), "-o", str(Path(t) / "成品.png"), "--psd", str(Path(t) / "成品.psd")])
+        report(code == 0 and 交付.size_of(Path(t) / "成品.png") == (300, 300) and (Path(t) / "成品.psd").stat().st_size > 0,
+               "后期：效果全开排一张，出 PNG＋PSD、尺寸不变、读回的字一字不差")
+        if 交付.Image:
+            from PIL import Image as _I  # noqa: N814
+            im = _I.new("RGBA", (60, 60), (0, 0, 0, 0))
+            im.paste((222, 210, 190, 255), (5, 5, 55, 55))
+            im.paste((90, 60, 40, 255), (25, 25, 35, 35))
+            im.save(Path(t) / "货.png")
+            code = 后期.main(["换色", str(Path(t) / "货.png"), "-o", str(Path(t) / "色"), "--色", "雾蓝=212,22,-8", "--留深色", "130"])
+            with _I.open(Path(t) / "色" / "雾蓝.png") as out:
+                out = out.convert("RGBA")
+                dark, body, empty = out.getpixel((30, 30)), out.getpixel((10, 10)), out.getpixel((1, 1))
+            report(code == 0 and dark[:3] == (90, 60, 40) and body[2] > body[0] and empty[3] == 0,
+                   "后期：换色只染浅色衣身，深色（扣子）不变、透明处还是透明", f"深 {dark} 身 {body} 空 {empty}")
+
 md = (LIB / "平台规格.md").read_text(encoding="utf-8")
 heads = set(re.findall(r"^### (\S+?)(?:（|$)", md, re.M))
 pending = {h for h in heads if re.search(rf"^### {h}[^\n]*\n+\*\*待核\*\*", md, re.M)}

@@ -8,7 +8,7 @@
 
 <p align="center">
   <a href="CHANGELOG.md"><img alt="执笔" src="https://img.shields.io/badge/执笔-v0.3.7-c0392b"></a>
-  <a href="CHANGELOG.md"><img alt="丹青" src="https://img.shields.io/badge/丹青-v0.4.0-2f6f9f"></a>
+  <a href="CHANGELOG.md"><img alt="丹青" src="https://img.shields.io/badge/丹青-v0.5.0-2f6f9f"></a>
   <a href="LICENSE"><img alt="license" src="https://img.shields.io/badge/license-CC%20BY%204.0%20%2B%20MIT-555555"></a>
   <a href="https://github.com/yunjian-ai/yunjian-zimeiti/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/yunjian-ai/yunjian-zimeiti/actions/workflows/ci.yml/badge.svg"></a>
 </p>
@@ -60,7 +60,7 @@
 | 1 | 第一次见面 | 一次问一件：做什么、发哪些平台、有没有 logo 和品牌色、出图用什么，建好视觉档案；支持「演练」 |
 | 2 | 接需求 | 自己判单图还是系列图，不让你选；单图三四行讲清理解就出，系列图一轮问清主体、平台、要哪几种图、景、品牌元素、参考，每项带推荐；只出你说到的，不默认整套 |
 | 3 | 立母版 | 一张原图立成商品四面板、人物定妆、场景多机位；细节从原图裁，看不到的标「推测」；一条消息给你确认，对了才往下出 |
-| 4 | 按需出图 | 电商主图、白底、详情，各平台封面、配图、小红书卡片、海报、直播封面；模型画底图，字和 logo 做图层，裁成官方像素 |
+| 4 | 按需出图 | 电商主图、白底、详情，各平台封面、配图、小红书卡片、海报、直播封面；模型画底图，字、价格、角标、圆框交给免费的 PhotoCraft 精确排（渐变描边字、竖排、弧形字、优惠券、爆炸贴），能附可改字的 PSD；一个版式换图换价批量出、抠好的商品出几个颜色；调色、抹领标、白底换底色不再花出图次数；裁成官方像素 |
 | 5 | 拖着调 | 每张图附一个网页：字、logo、色块拖着挪、拉角改大小、双击改字，导出成品或把改动发回 |
 | 6 | 出图自检 | 像素、比例、大小、白底、张数脚本查；系列图的颜色、印花、字、配件数对着母版看；平台对字的要求只提醒 |
 | 7 | 库管家 | 记你选过的景和版式，同类做满 5 张归纳喜好；好图收成参考卡；「照上次那套」一句话复用 |
@@ -82,7 +82,7 @@
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/yunjian-ai/yunjian-zimeiti/pen-v0.3.7/members/pen/dist/install.sh | bash
-curl -fsSL https://raw.githubusercontent.com/yunjian-ai/yunjian-zimeiti/paint-v0.4.0/members/paint/dist/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/yunjian-ai/yunjian-zimeiti/paint-v0.5.0/members/paint/dist/install.sh | bash
 ```
 
 **更新、修复、反馈**，都是一句话：
@@ -99,7 +99,7 @@ curl -fsSL https://raw.githubusercontent.com/yunjian-ai/yunjian-zimeiti/paint-v0
 | 系列 | 成员 | 职能 | 状态 |
 |---|---|---|---|
 | 万象 | 执笔 Pen | 写稿：口播、长文、仿写、多平台 | ✅ v0.3.7 |
-| 万象 | 丹青 Paint | 做图：单图直接出，系列图立母版锁人锁货，按平台规格出图、拖着调 | ✅ v0.4.0 |
+| 万象 | 丹青 Paint | 做图：单图直接出，系列图立母版锁人锁货，按平台规格出图；字、价格、多颜色、批量交 PhotoCraft 精确排，能出 PSD；拖着调 | ✅ v0.5.0 |
 | 万象 | 掠影 | 做视频 | 规划中 |
 
 起元系列（提示词、Skill、蒸馏、本体、验证、统筹）在 [yunjian-ai/yunjian](https://github.com/yunjian-ai/yunjian)。
