@@ -1,7 +1,7 @@
 """把长文写作稿（形式卡第二节的交稿样子）转成排版网页，再出一份去掉段落标注的发布版文字。只用标准库。
 
 给人看：网页上有两个按钮——「写作视图」按颜色标出钩子（红）、论点（蓝）、证据（绿）、槽点（橙）、图片位（紫）、收藏件（金），
-给主人审稿用；「发布视图」是读者看到的样子。==黄底== 是重点句，**红字** 是数字和重读，★ 💡 ⚠️ 👇 【可以直接抄】各有固定样式。
+给主人审稿用；「发布视图」是读者看到的样子，网页一打开就是发布视图（主人先看到成品，要审稿再点写作视图）。==黄底== 是重点句，**红字** 是数字和重读，★ 💡 ⚠️ 👇 【可以直接抄】各有固定样式。
 用法：python3 长文排版.py 稿子.md [-o 排版.html]     稿子用 - 就从标准输入读
      图片位写上图片文件名（「👇【图】说明｜图1.jpg」），就把这张图嵌进网页（文件名相对稿子所在文件夹），网页单独发出去也能看到图。
      同时在网页旁边存一份「同名-发布版.md」（去掉【钩子】这类标注，留下读者要看的）。"""
@@ -142,9 +142,9 @@ def render(text, base=None):
             out.append(f"<div{attr}><p>{inline(s)}</p></div>"); pub.append(s)
         i += 1
     page = (f'<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">'
-            f"<title>{html.escape(title or '长文排版')}</title><style>{CSS}</style></head><body class=\"write\"><div class=\"wrap\">"
-            '<div class="bar"><button id="bw" class="on" onclick="v(1)">写作视图（标出钩子、论点、槽点、图片位）</button>'
-            '<button id="bp" onclick="v(0)">发布视图（读者看到的）</button></div>'
+            f"<title>{html.escape(title or '长文排版')}</title><style>{CSS}</style></head><body><div class=\"wrap\">"
+            '<div class="bar"><button id="bw" onclick="v(1)">写作视图（标出钩子、论点、槽点、图片位）</button>'
+            '<button id="bp" class="on" onclick="v(0)">发布视图（读者看到的）</button></div>'
             + (f"<h1>{inline(title)}</h1>" if title else "") + (f'<div class="sub">{html.escape(sub)}</div>' if sub else "")
             + "".join(out)
             + '<div class="legend note">写作视图图例：<span style="background:var(--hook)"></span>钩子<span style="background:var(--point)"></span>论点'
