@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>丹青 · 拖着调</title>
+<style>
+:root{--bg:#f4f4f6;--panel:#fff;--ink:#1d1d1f;--muted:#86868b;--line:#e3e3e8;--accent:#e85d2f;--sel:#2f7de8;--warn:#e23b3b}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#141416;--panel:#1d1d20;--ink:#f2f2f2;--muted:#9a9aa0;--line:#2e2e33}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;font-size:14px}
+header{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 14px;background:var(--panel);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
+header h1{font-size:16px;margin:0 10px 0 0}
+button{border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:7px 12px;border-radius:999px;font-size:13px;cursor:pointer}
+button.on{background:var(--ink);color:var(--panel)}
+button.main{background:var(--accent);border-color:var(--accent);color:#fff}
+button:disabled{opacity:.4;cursor:default}
+.tip{color:var(--muted);font-size:12px;padding:6px 14px}
+main{display:flex;justify-content:center;padding:14px}
+#stage{position:relative;background:#ddd;box-shadow:0 2px 16px rgba(0,0,0,.12);touch-action:none;user-select:none;overflow:hidden}
+#stage img.base{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none}
+.layer{position:absolute;cursor:move}
+.layer.text{display:flex;align-items:center;justify-content:center;text-align:center;line-height:1.15;white-space:pre-wrap;word-break:break-all}
+.layer.text.left{justify-content:flex-start;text-align:left}.layer.text.right{justify-content:flex-end;text-align:right}
+.layer img{width:100%;height:100%;pointer-events:none;display:block}
+.layer.sel{outline:2px solid var(--sel)}
+.hole{position:absolute;pointer-events:none;background:repeating-linear-gradient(45deg,rgba(226,59,59,.35) 0 6px,rgba(255,255,255,.35) 6px 12px);outline:1px dashed var(--warn)}
+.h{position:absolute;width:14px;height:14px;background:#fff;border:2px solid var(--sel);border-radius:50%;margin:-7px 0 0 -7px;z-index:3}
+.guide{position:absolute;background:var(--accent);pointer-events:none;z-index:4}
+#marquee{position:absolute;border:2px dashed var(--sel);background:rgba(47,125,232,.12);pointer-events:none;display:none;z-index:4}
+.safe{position:absolute;border:2px dashed rgba(226,59,59,.8);pointer-events:none;display:none;z-index:2}
+.layer.out{outline:2px solid var(--warn)}
+dialog{border:1px solid var(--line);border-radius:12px;background:var(--panel);color:var(--ink);max-width:560px;width:92vw}
+dialog textarea{width:100%;height:180px;font-family:ui-monospace,monospace;font-size:12px;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px}
+</style>
+</head>
+<body>
+<header>
+  <h1 id="title">丹青 · 拖着调</h1>
+  <button id="tMove" class="on" title="点中文字、logo 拖着挪，拉角改大小">✋ 挪动／缩放</button>
+  <button id="tCut" title="把图里画好的东西用框圈出来，再拖到新位置">⬚ 圈选图里的东西</button>
+  <button id="bUndo">↶ 撤销</button>
+  <button id="bReset">还原</button>
+  <button id="bSafe">安全区</button>
+  <button id="bExport" class="main">导出图片</button>
+  <button id="bSend" class="main">把改动发给丹青</button>
+</header>
+<div class="tip" id="tip">点中文字或图案：拖着挪位置，拉四个角改大小，双击文字改字。说不清的地方，直接拖成你想要的样子。</div>
+<main><div id="stage"><img class="base" id="base" alt=""><div id="marquee"></div><div class="safe" id="safe"></div></div></main>
+<dialog id="dlg"><p id="dlgMsg"></p><textarea id="dlgText" readonly></textarea><p style="text-align:right"><button id="dlgCopy" class="main">复制</button> <button onclick="dlg.close()">关闭</button></p></dialog>
+
+<script id="data" type="application/json">__DATA__</script>
+<script>
+const D = JSON.parse(document.getElementById('data').textContent);
+// D = {title, width, height, base:"data:...", safe:{x,y,w,h}(0-1, 可选), layers:[{id,type:'text'|'image'|'rect',x,y,w,h(0-1),text,color,weight,font,align,opacity,src}]}
+const FONTS = {'思源宋体': '"Source Han Serif SC","Noto Serif SC","Noto Serif CJK SC","Songti SC","STSong",serif',
+  '思源黑体': '"Source Han Sans SC","Noto Sans SC","Noto Sans CJK SC","PingFang SC","Microsoft YaHei",sans-serif',
+  '阿里巴巴普惠体': '"Alibaba PuHuiTi 2.0","Alibaba PuHuiTi","PingFang SC","Microsoft YaHei",sans-serif'};
+const fam = L => FONTS[L.font] || (L.font ? `"${L.font}",` : '') + '"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif';
+function outside(L) { const s = D.safe; return s && (L.x < s.x - 0.001 || L.y < s.y - 0.001 || L.x + L.w > s.x + s.w + 0.001 || L.y + L.h > s.y + s.h + 0.001); }
+const stage = document.getElementById('stage'), baseImg = document.getElementById('base');
+const W = D.width, H = D.height;
+let scale = 1, mode = 'move', sel = null, layers = [], holes = [], history = [];
+const init = JSON.stringify({layers: D.layers || [], holes: []});
+document.getElementById('title').textContent = '丹青 · 拖着调' + (D.title ? '｜' + D.title : '');
+baseImg.src = D.base;
+
+function fit() {
+  const maxW = Math.min(window.innerWidth - 28, 720), maxH = window.innerHeight - 140;
+  scale = Math.min(maxW / W, maxH / H, 1.2);
+  stage.style.width = W * scale + 'px'; stage.style.height = H * scale + 'px';
+  render();
+}
+function snapshot() { history.push(JSON.stringify({layers, holes})); if (history.length > 50) history.shift(); }
+function load(s) { const o = JSON.parse(s); layers = o.layers; holes = o.holes; sel = null; render(); }
+
+function render() {
+  stage.querySelectorAll('.layer,.hole,.h,.guide').forEach(e => e.remove());
+  holes.forEach(h => { const d = document.createElement('div'); d.className = 'hole'; box(d, h); stage.appendChild(d); });
+  layers.forEach(L => {
+    const d = document.createElement('div'); d.className = 'layer ' + L.type + (L.type === 'text' ? ' ' + (L.align || 'center') : '') + (sel === L.id ? ' sel' : '') + (outside(L) && L.type !== 'rect' ? ' out' : ''); d.dataset.id = L.id; box(d, L);
+    if (L.type === 'text') {
+      d.textContent = L.text; d.style.color = L.color || '#111'; d.style.fontWeight = L.weight || 800;
+      d.style.fontFamily = fam(L);
+      d.style.fontSize = fontPx(L) * scale + 'px';
+    } else if (L.type === 'rect') { d.style.background = L.color || '#000'; d.style.opacity = L.opacity ?? 1; }
+    else { const im = document.createElement('img'); im.src = L.src; d.appendChild(im); }
+    d.addEventListener('pointerdown', e => startDrag(e, L));
+    if (L.type === 'text') d.addEventListener('dblclick', () => editText(L));
+    stage.appendChild(d);
+  });
+  const L = layers.find(l => l.id === sel);
+  if (L && mode === 'move') ['nw','ne','sw','se'].forEach(c => {
+    const h = document.createElement('div'); h.className = 'h';
+    h.style.left = (L.x + (c[1] === 'e' ? L.w : 0)) * W * scale + 'px';
+    h.style.top = (L.y + (c[0] === 's' ? L.h : 0)) * H * scale + 'px';
+    h.style.cursor = c + '-resize';
+    h.addEventListener('pointerdown', e => startResize(e, L, c));
+    stage.appendChild(h);
+  });
+  if (D.safe) { const s = document.getElementById('safe'); box(s, D.safe); }
+  document.getElementById('bUndo').disabled = !history.length;
+}
+function box(el, r) { el.style.left = r.x * W * scale + 'px'; el.style.top = r.y * H * scale + 'px'; el.style.width = r.w * W * scale + 'px'; el.style.height = r.h * H * scale + 'px'; }
+function fontPx(L) { const lines = (L.text || '').split('\n').length; return Math.min(L.h * H / lines / 1.2, L.w * W / Math.max(...(L.text || ' ').split('\n').map(s => s.length)) * 0.98); }
+
+function pt(e) { const r = stage.getBoundingClientRect(); return {x: (e.clientX - r.left) / scale / W, y: (e.clientY - r.top) / scale / H}; }
+function startDrag(e, L) {
+  if (mode !== 'move') return; e.stopPropagation(); e.preventDefault();
+  sel = L.id; snapshot(); const p0 = pt(e), o = {x: L.x, y: L.y};
+  const mv = ev => { const p = pt(ev); L.x = o.x + p.x - p0.x; L.y = o.y + p.y - p0.y; snap(L); render(); };
+  const up = () => { removeEventListener('pointermove', mv); removeEventListener('pointerup', up); clearGuides(); };
+  addEventListener('pointermove', mv); addEventListener('pointerup', up); render();
+}
+function startResize(e, L, c) {
+  e.stopPropagation(); e.preventDefault(); snapshot();
+  const p0 = pt(e), o = {x: L.x, y: L.y, w: L.w, h: L.h}, ratio = o.w / o.h, keep = L.type === 'image';
+  const mv = ev => {
+    const p = pt(ev); let dx = p.x - p0.x, dy = p.y - p0.y;
+    let w = o.w + (c[1] === 'e' ? dx : -dx), h = o.h + (c[0] === 's' ? dy : -dy);
+    if (keep) h = w / ratio;  // 图案保持原来的长宽比，不变形
+    w = Math.max(w, 0.03); h = Math.max(h, 0.02);
+    L.w = w; L.h = h; L.x = c[1] === 'w' ? o.x + o.w - w : o.x; L.y = c[0] === 'n' ? o.y + o.h - h : o.y;
+    render();
+  };
+  const up = () => { removeEventListener('pointermove', mv); removeEventListener('pointerup', up); };
+  addEventListener('pointermove', mv); addEventListener('pointerup', up);
+}
+function snap(L) {  // 靠近画面中线自动吸附，显示参考线
+  clearGuides(); const cx = L.x + L.w / 2, cy = L.y + L.h / 2;
+  if (Math.abs(cx - 0.5) < 0.012) { L.x = 0.5 - L.w / 2; guide('v'); }
+  if (Math.abs(cy - 0.5) < 0.012) { L.y = 0.5 - L.h / 2; guide('h'); }
+}
+function guide(t) { const g = document.createElement('div'); g.className = 'guide';
+  if (t === 'v') Object.assign(g.style, {left: W * scale / 2 + 'px', top: 0, width: '1px', height: '100%'});
+  else Object.assign(g.style, {top: H * scale / 2 + 'px', left: 0, height: '1px', width: '100%'});
+  stage.appendChild(g); }
+function clearGuides() { stage.querySelectorAll('.guide').forEach(g => g.remove()); }
+function editText(L) { const t = prompt('改字（换行用回车不行的话写 \\n）', L.text); if (t != null) { snapshot(); L.text = t.replace(/\\n/g, '\n'); render(); } }
+
+// 圈选：把底图上一块框出来变成可挪的图层，原位置标成「待补」
+const mq = document.getElementById('marquee');
+stage.addEventListener('pointerdown', e => {
+  if (mode !== 'cut') { sel = null; render(); return; }
+  e.preventDefault(); const p0 = pt(e);
+  const mv = ev => { const p = pt(ev); const r = rect(p0, p); Object.assign(mq.style, {display: 'block'}); box(mq, r); };
+  const up = ev => {
+    removeEventListener('pointermove', mv); removeEventListener('pointerup', up); mq.style.display = 'none';
+    const r = rect(p0, pt(ev)); if (r.w < 0.02 || r.h < 0.02) return;
+    cutOut(r);
+  };
+  addEventListener('pointermove', mv); addEventListener('pointerup', up);
+});
+function rect(a, b) { const x = Math.max(0, Math.min(a.x, b.x)), y = Math.max(0, Math.min(a.y, b.y)); return {x, y, w: Math.min(1, Math.max(a.x, b.x)) - x, h: Math.min(1, Math.max(a.y, b.y)) - y}; }
+function cutOut(r) {
+  const c = document.createElement('canvas'); c.width = Math.round(r.w * W); c.height = Math.round(r.h * H);
+  c.getContext('2d').drawImage(baseImg, r.x * baseImg.naturalWidth, r.y * baseImg.naturalHeight, r.w * baseImg.naturalWidth, r.h * baseImg.naturalHeight, 0, 0, c.width, c.height);
+  snapshot();
+  const id = 'cut' + (holes.length + 1);
+  holes.push({id, x: r.x, y: r.y, w: r.w, h: r.h});
+  layers.push({id, type: 'image', src: c.toDataURL('image/png'), x: r.x, y: r.y, w: r.w, h: r.h, from: {x: r.x, y: r.y, w: r.w, h: r.h}, cut: true});
+  sel = id; setMode('move');
+  tip('圈好了，现在拖着这块挪到你想要的位置、拉角改大小。原来的位置画了红斜线，发给丹青后它会把那里补自然。');
+}
+
+function setMode(m) { mode = m; document.getElementById('tMove').classList.toggle('on', m === 'move'); document.getElementById('tCut').classList.toggle('on', m === 'cut'); stage.style.cursor = m === 'cut' ? 'crosshair' : 'default'; render(); }
+function tip(s) { document.getElementById('tip').textContent = s; }
+document.getElementById('tMove').onclick = () => { setMode('move'); tip('点中文字或图案：拖着挪位置，拉四个角改大小，双击文字改字。'); };
+document.getElementById('tCut').onclick = () => { setMode('cut'); sel = null; tip('在图上按住拖一个框，把要挪的东西框起来。'); };
+document.getElementById('bUndo').onclick = () => { if (history.length) load(history.pop()); };
+document.getElementById('bReset').onclick = () => { snapshot(); load(init); };
+document.getElementById('bSafe').onclick = e => { if (!D.safe) return tip('这张图的平台规格里没有安全区。'); const s = document.getElementById('safe'); const on = s.style.display !== 'block'; s.style.display = on ? 'block' : 'none'; e.target.classList.toggle('on', on); };
+
+function drawAll(fillHoles) {
+  const c = document.createElement('canvas'); c.width = W; c.height = H; const g = c.getContext('2d');
+  g.drawImage(baseImg, 0, 0, W, H);
+  if (fillHoles) holes.forEach(h => { // 简单补底：用框外一圈的平均色铺上，交给丹青再让模型补自然
+    const d = g.getImageData(Math.max(0, h.x * W - 4), Math.max(0, h.y * H - 4), h.w * W + 8, h.h * H + 8).data; let r = 0, gg = 0, b = 0, n = 0;
+    for (let i = 0; i < d.length; i += 16) { r += d[i]; gg += d[i + 1]; b += d[i + 2]; n++; }
+    g.fillStyle = `rgb(${r / n | 0},${gg / n | 0},${b / n | 0})`; g.fillRect(h.x * W, h.y * H, h.w * W, h.h * H); });
+  return Promise.all(layers.map(L => new Promise(ok => {
+    if (L.type === 'text') { ok(() => {
+      const lines = L.text.split('\n'), fs = fontPx(L), al = L.align || 'center'; g.fillStyle = L.color || '#111'; g.textAlign = al; g.textBaseline = 'middle';
+      g.font = `${L.weight || 800} ${fs}px ${fam(L)}`;
+      const tx = al === 'left' ? L.x * W : al === 'right' ? (L.x + L.w) * W : (L.x + L.w / 2) * W;
+      lines.forEach((s, i) => g.fillText(s, tx, (L.y + L.h / 2) * H + (i - (lines.length - 1) / 2) * fs * 1.15)); }); }
+    else if (L.type === 'rect') { ok(() => { g.save(); g.globalAlpha = L.opacity ?? 1; g.fillStyle = L.color || '#000'; g.fillRect(L.x * W, L.y * H, L.w * W, L.h * H); g.restore(); }); }
+    else { const im = new Image(); im.onload = () => ok(() => g.drawImage(im, L.x * W, L.y * H, L.w * W, L.h * H)); im.src = L.src; }
+  }))).then(fns => { fns.forEach(f => f()); return c; });
+}
+function download(c, name) { const a = document.createElement('a'); a.href = c.toDataURL('image/png'); a.download = name; a.click(); }
+document.getElementById('bExport').onclick = async () => {
+  if (holes.length) { show('你圈选挪动过图里的东西，原来的位置需要丹青补自然。请点「把改动发给丹青」；这张先导出一版带简单补底的给你预览。', changes()); }
+  download(await drawAll(true), (D.title || '丹青') + `-${W}x${H}.png`);
+};
+function changes() {
+  const r4 = v => Math.round(v * 10000) / 10000;
+  return JSON.stringify({图: D.title || '', 尺寸: [W, H], 改动: layers.map(L => {
+    const o = (D.layers || []).find(x => x.id === L.id) || L.from || {};
+    const now = {x: r4(L.x), y: r4(L.y), w: r4(L.w), h: r4(L.h)};
+    const moved = ['x','y','w','h'].some(k => Math.abs((o[k] ?? -1) - L[k]) > 0.0005) || (L.type === 'text' && o.text !== L.text);
+    return moved ? Object.assign({图层: L.id, 类型: L.cut ? '圈选的图里东西' : ({text: '文字', rect: '色块'}[L.type] || '图案'), 原位置: o.x == null ? null : {x: r4(o.x), y: r4(o.y), w: r4(o.w), h: r4(o.h)}, 新位置: now}, L.type === 'text' ? {文字: L.text} : {}) : null;
+  }).filter(Boolean), 待补的空: holes.map(h => ({x: r4(h.x), y: r4(h.y), w: r4(h.w), h: r4(h.h)}))});
+}
+function show(msg, text) { document.getElementById('dlgMsg').textContent = msg; document.getElementById('dlgText').value = text; dlg.showModal(); }
+document.getElementById('bSend').onclick = () => show('把下面这段复制，粘回和丹青的聊天里，丹青会照着出高清版，并记住你喜欢的位置。', changes());
+document.getElementById('dlgCopy').onclick = () => { const t = document.getElementById('dlgText'); t.select(); navigator.clipboard ? navigator.clipboard.writeText(t.value) : document.execCommand('copy'); document.getElementById('dlgCopy').textContent = '已复制'; };
+addEventListener('keydown', e => { if ((e.metaKey || e.ctrlKey) && e.key === 'z') { e.preventDefault(); document.getElementById('bUndo').click(); } });
+addEventListener('resize', fit);
+layers = JSON.parse(init).layers; baseImg.onload = fit; if (baseImg.complete) fit();
+</script>
+</body>
+</html>

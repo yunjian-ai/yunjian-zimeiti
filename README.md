@@ -2,17 +2,18 @@
 
 <h1 align="center">云间Bot · 万象 Cloudmere</h1>
 
-<p align="center"><b>一元复始，万象更新。</b><br>起元教 AI 做事，万象替你把自己的事讲出去。第一位手艺人执笔，把你亲手做过的事落笔成文：口播一开口就留得住人，长文读着像你本人在讲；丹青作画、掠影成片，随后就到。你只管开口。</p>
+<p align="center"><b>一元复始，万象更新。</b><br>起元教 AI 做事，万象替你把自己的事讲出去。执笔把你亲手做过的事落笔成文：口播一开口就留得住人，长文读着像你本人在讲；丹青替你作画：一张原图立成母版，同一件货、同一个人换多少张都还是它；掠影成片，随后就到。你只管开口。</p>
 
 <p align="center">执笔 Pen · cloudmere · Grok Bot 口播稿、长文、仿写、去 AI 味、多平台改写助手 · 仓库 <a href="https://github.com/yunjian-ai/yunjian-zimeiti">github.com/yunjian-ai/yunjian-zimeiti</a></p>
 
 <p align="center">
   <a href="CHANGELOG.md"><img alt="执笔" src="https://img.shields.io/badge/执笔-v0.3.4-c0392b"></a>
+  <a href="CHANGELOG.md"><img alt="丹青" src="https://img.shields.io/badge/丹青-v0.1.0-2f6f9f"></a>
   <a href="LICENSE"><img alt="license" src="https://img.shields.io/badge/license-CC%20BY%204.0%20%2B%20MIT-555555"></a>
   <a href="https://github.com/yunjian-ai/yunjian-zimeiti/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/yunjian-ai/yunjian-zimeiti/actions/workflows/ci.yml/badge.svg"></a>
 </p>
 
-<p align="center"><a href="#english">English</a> · <a href="#执笔--pen">执笔</a> · <a href="#安装">安装</a> · <a href="#路线图">路线图</a> · <a href="#常见问题">常见问题</a></p>
+<p align="center"><a href="#english">English</a> · <a href="#执笔--pen">执笔</a> · <a href="#丹青--paint">丹青</a> · <a href="#安装">安装</a> · <a href="#路线图">路线图</a> · <a href="#常见问题">常见问题</a></p>
 
 ---
 
@@ -22,7 +23,7 @@
 
 名字取自「一元复始，万象更新」：起元是开端，万象是开端之后的万千气象。这一系列给你的是做自媒体的本事——写稿、作画、成片，一门手艺一位，每位单装就能从头干到尾。
 
-现在有一位：管写稿的 **执笔**。管作画的丹青、管成片的掠影在后面。
+现在有两位：管写稿的 **执笔**、管做图的 **丹青**。管成片的掠影在后面。
 
 ## 执笔 · Pen
 
@@ -48,6 +49,24 @@
 
 另有两个后台技能：`pen-install` 负责安装（顺带装好爆款库和抓取工具），`pen-update` 负责更新。
 
+## 丹青 · Paint
+
+> 你说一句要什么图、给一张商品图或模特图，它先理成一张需求单，再立好母版，照抖店、微信小店、小红书、抖音、公众号的官方规格，只出你要的那几张；字和 logo 你自己拖着调。
+
+**七个技能，各干一步**
+
+| # | 技能 | 做什么 |
+|---|---|---|
+| 1 | 第一次见面 | 一次问一件：做什么、发哪些平台、有没有 logo 和品牌色、出图用什么，建好视觉档案；支持「演练」 |
+| 2 | 需求单 | 一轮问清主体、平台、要哪几种图、景、品牌元素、参考，每项带推荐；只出你说到的，不默认整套 |
+| 3 | 立母版 | 一张原图立成商品四面板、人物定妆、场景多机位；细节从原图裁，看不到的标「推测」，换 3 个场景验过才入库 |
+| 4 | 按需出图 | 电商主图、白底、详情，各平台封面、配图、小红书卡片、海报、直播封面；模型画底图，字和 logo 做图层，裁成官方像素 |
+| 5 | 拖着调 | 每张图附一个网页：字、logo、色块拖着挪、拉角改大小、双击改字，导出成品或把改动发回 |
+| 6 | 出图自检 | 像素、比例、大小、白底、张数脚本查；颜色、印花、字、配件数对着母版看；平台对字的要求只提醒 |
+| 7 | 库管家 | 记你选过的景和版式，同类做满 5 张归纳喜好；好图收成参考卡；「照上次那套」一句话复用 |
+
+另有两个后台技能：`paint-install` 负责安装（顺带装好平台规格、场景、品牌元素、参考库），`paint-update` 负责更新。出图默认用 Bot 自带的出图；你有 GPT Image 的接口密钥也可以在 Bot 的密钥卡片里设好，丹青不在聊天里要密钥。
+
 ## 安装
 
 1. 在 Grok Bot 里点开执笔的分享链接，把它请进来：
@@ -62,6 +81,7 @@
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/yunjian-ai/yunjian-zimeiti/pen-v0.3.4/members/pen/dist/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/yunjian-ai/yunjian-zimeiti/paint-v0.1.0/members/paint/dist/install.sh | bash
 ```
 
 **更新、修复、反馈**，都是一句话：
@@ -71,14 +91,14 @@ curl -fsSL https://raw.githubusercontent.com/yunjian-ai/yunjian-zimeiti/pen-v0.3
 
 ## 示例和考题
 
-`members/pen/examples/` 里有一位虚构主人从头用到尾的全过程；`members/pen/tests/考题v0.2.md` 是发版前用全新 AI 考的题和合格标准。
+`members/pen/examples/`、`members/paint/examples/` 里各有一位虚构主人从头用到尾的全过程；`members/pen/tests/考题v0.2.md` 是发版前用全新 AI 考的题和合格标准。
 
 ## 路线图
 
 | 系列 | 成员 | 职能 | 状态 |
 |---|---|---|---|
 | 万象 | 执笔 Pen | 写稿：口播、长文、仿写、多平台 | ✅ v0.3.4 |
-| 万象 | 丹青 | 做图 | 规划中 |
+| 万象 | 丹青 Paint | 做图：需求单、母版、按平台规格出图、拖着调 | ✅ v0.1.0 |
 | 万象 | 掠影 | 做视频 | 规划中 |
 
 起元系列（提示词、Skill、蒸馏、本体、验证、统筹）在 [yunjian-ai/yunjian](https://github.com/yunjian-ai/yunjian)。
@@ -97,7 +117,7 @@ curl -fsSL https://raw.githubusercontent.com/yunjian-ai/yunjian-zimeiti/pen-v0.3
 
 **抓取要不要花钱？** 免费办法优先：抖音、X 能免费拿到正文和互动数，视频号能免费拿到数据。要视频、逐字稿、公众号阅读数时才用付费接口，先问你、你同意才用，密钥只放在你自己电脑上，不进聊天。
 
-**一定要装起元吗？** 不用，执笔单装就能用。
+**一定要装起元吗？** 不用，执笔、丹青都是单装就能用。
 
 ## 参与开发
 
@@ -115,4 +135,4 @@ curl -fsSL https://raw.githubusercontent.com/yunjian-ai/yunjian-zimeiti/pen-v0.3
 
 ## English
 
-**Cloudmere (云间Bot · 万象)** is the content-creation series of Cloudmere, a set of members built for bots such as Grok Bot. Its first member, **Pen (执笔)**, turns things you actually did into short-video scripts and long-form posts that sound like you, then adapts them for each platform (Douyin, WeChat Channels, WeChat Official Accounts, X). It asks one question, then hands back a finished, laid-out piece with images. When remaking an article, it keeps the structure and swaps in fresh, verified real-world cases with source links. Every fact is traced to your own words or a cited source; a bundled checker blocks invented facts, overstated results and changed completion states. It never publishes for you.
+**Cloudmere (云间Bot · 万象)** is the content-creation series of Cloudmere, a set of members built for bots such as Grok Bot. Its first member, **Pen (执笔)**, turns things you actually did into short-video scripts and long-form posts that sound like you, then adapts them for each platform (Douyin, WeChat Channels, WeChat Official Accounts, X). It asks one question, then hands back a finished, laid-out piece with images. When remaking an article, it keeps the structure and swaps in fresh, verified real-world cases with source links. Every fact is traced to your own words or a cited source; a bundled checker blocks invented facts, overstated results and changed completion states. It never publishes for you. Its second member, **Paint (丹青)**, turns a one-line request and a single product or model photo into on-spec images for Douyin shops, WeChat shops, Xiaohongshu, Douyin and WeChat Official Accounts: it writes a brief first, builds a reusable master of the product or person so every shot stays consistent, makes only the images you asked for, and gives you a page to drag text and logos into place.
