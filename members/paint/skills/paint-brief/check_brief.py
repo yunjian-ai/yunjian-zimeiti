@@ -16,6 +16,8 @@ ZHUTI = ["商品为主", "人物为主", "人＋货", "场景为主", "内容为
 BRAND = ["加（主人给）", "加（丹青出方案）", "不加", "待问"]
 SOURCE = ["主人", "推荐"]
 KEYS = ["版本", "日期", "一句话", "主体", "平台", "用途", "要什么", "套餐", "规格", "景", "品牌元素", "参考", "提醒", "主人确认"]
+KEYS_SINGLE = ["版本", "日期", "一句话", "档", "平台", "要什么", "规格", "想法", "提示词", "提醒"]  # 单图：不走七问（判档卡）
+DANG = ["单图", "系列图"]
 
 CARD_KINDS = {  # 库子目录 -> (卡头「类」, 卡头必填字段, 正文必有的小节)
     "场景": ("场景", ["景", "名字", "适用图", "适用主体"], ["什么样", "提示词片段（中）", "提示词片段（英）", "注意"]),
@@ -44,7 +46,62 @@ def pending_platforms(lib):
     return out
 
 
+def check_items(items, lib, owner_only=False, confirmed=True):
+    errs, pend = [], pending_platforms(lib)
+    for i, it in enumerate(items, 1):
+        if not isinstance(it, dict):
+            errs.append(f"要什么第 {i} 项要写成 {{\"图类\", \"张数\", \"平台\", \"来源\"}}")
+            continue
+        if it.get("图类") not in MENU:
+            errs.append(f"要什么第 {i} 项图类「{it.get('图类')}」不在菜单里（菜单外的写「菜单外」）")
+        if not isinstance(it.get("张数"), int) or it.get("张数", 0) < 1:
+            errs.append(f"要什么第 {i} 项张数要是 ≥1 的整数")
+        if it.get("来源") not in SOURCE:
+            errs.append(f"要什么第 {i} 项来源只能是「主人」或「推荐」")
+        if owner_only and it.get("来源") != "主人":
+            errs.append(f"要什么第 {i} 项是推荐加的——单图只出主人说到的图")
+        elif it.get("来源") == "推荐" and not confirmed:
+            errs.append(f"要什么第 {i} 项是推荐加的，主人还没点头——没点头的图类不出")
+        if isinstance(it.get("平台"), str) and it["平台"] in pend:
+            errs.append(f"要什么第 {i} 项平台「{it['平台']}」规格还没核对官方，先停下核，不出成品")
+    return errs
+
+
+def check_single(data, lib=None):
+    errs = [f"缺「{k}」" for k in KEYS_SINGLE if k not in data]
+    if errs:
+        return errs
+    if data.get("锁"):
+        errs.append("单图不锁人、不锁货；要锁同一个人或同一件货就是系列图（判档卡），改走七问需求单")
+    if data.get("套餐"):
+        errs.append("单图没有套餐；主人要整套就是系列图")
+    if not isinstance(data["平台"], list):
+        errs.append("平台要写成列表（不发平台的写 [\"通用\"]）")
+    items = data["要什么"] if isinstance(data["要什么"], list) and data["要什么"] else []
+    if not items:
+        errs.append("要什么至少一项（只写主人说到的图）")
+    errs += check_items(items, lib, owner_only=True)
+    idea = data["想法"]
+    if not isinstance(idea, str) or not idea.strip():
+        errs.append("想法要写成一段话：主体、画面、风格（聊天里那三四行）")
+    elif len(idea.strip().splitlines()) > 4:
+        errs.append("想法写长了：三四行以内，细节放进提示词")
+    n = sum(it.get("张数", 0) for it in items if isinstance(it, dict) and isinstance(it.get("张数"), int))
+    ps = data["提示词"]
+    if not isinstance(ps, list) or not all(isinstance(x, str) and x.strip() for x in ps):
+        errs.append("提示词要写成列表，一张一段")
+    elif n and len(ps) not in (1, n):
+        errs.append(f"提示词 {len(ps)} 段，张数 {n}：一张一段，或几张同一段")
+    if not isinstance(data["提醒"], list):
+        errs.append("提醒要写成列表（没有就写 []）")
+    return errs
+
+
 def check_brief(data, lib=None):
+    if data.get("档") == "单图":
+        return check_single(data, lib)
+    if "档" in data and data["档"] not in DANG:
+        return [f"档只能是 {DANG}"]
     errs = []
     for k in KEYS:
         if k not in data:
@@ -59,21 +116,7 @@ def check_brief(data, lib=None):
     if not isinstance(items, list) or not items:
         errs.append("要什么至少一项（只写主人说到的图）")
         items = []
-    pend = pending_platforms(lib)
-    for i, it in enumerate(items, 1):
-        if not isinstance(it, dict):
-            errs.append(f"要什么第 {i} 项要写成 {{\"图类\", \"张数\", \"平台\", \"来源\"}}")
-            continue
-        if it.get("图类") not in MENU:
-            errs.append(f"要什么第 {i} 项图类「{it.get('图类')}」不在菜单里（菜单外的写「菜单外」）")
-        if not isinstance(it.get("张数"), int) or it.get("张数", 0) < 1:
-            errs.append(f"要什么第 {i} 项张数要是 ≥1 的整数")
-        if it.get("来源") not in SOURCE:
-            errs.append(f"要什么第 {i} 项来源只能是「主人」或「推荐」")
-        if it.get("来源") == "推荐" and not data["主人确认"]:
-            errs.append(f"要什么第 {i} 项是推荐加的，主人还没点头——没点头的图类不出")
-        if isinstance(it.get("平台"), str) and it["平台"] in pend:
-            errs.append(f"要什么第 {i} 项平台「{it['平台']}」规格还没核对官方，先停下核，不出成品")
+    errs += check_items(items, lib, confirmed=data["主人确认"])
     if not isinstance(data["套餐"], bool):
         errs.append("套餐只能是 true / false（主人明说整套才是 true）")
     for k in ["景", "参考"]:
@@ -87,6 +130,8 @@ def check_brief(data, lib=None):
         errs.append("主人确认只能是 true / false")
     if not isinstance(data["提醒"], list):
         errs.append("提醒要写成列表（没有就写 []）")
+    if data.get("档") == "系列图" and (not isinstance(data.get("锁"), list) or not data["锁"]):
+        errs.append("系列图要写「锁」：这单锁住的人、货（如 [\"商品：米白开衫\"]）；锁不出东西就是单图（判档卡）")
     return errs
 
 

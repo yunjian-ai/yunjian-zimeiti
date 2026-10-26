@@ -33,6 +33,13 @@ for f in sorted((HERE / "fixtures").glob("*.json")):
         ok = not errs
     report(ok, f"夹具 {f.stem}", f"得到 {errs}｜{fx['why']}")
 
+# ①¼ 打包：技能子文件夹里的文件也进包（v0.1.x 漏了 paint-master/身份证/，Bot 里拿不到模板）；借来的青鸟卡也在
+_rec = json.loads((HERE.parent / "dist" / "recipe.json").read_text(encoding="utf-8"))
+_files = {s["name"]: s["files"] for s in _rec["skills"]}
+report(all(f"身份证/{k}.md" in _files["paint-master"] for k in ("商品", "人物", "场景", "风格", "品牌")), "打包：身份证模板 5 份都在安装包里")
+report({"借用/图片卡.md", "借用/规则卡.md", "单图卡.md"} <= set(_files["paint-make"]) and "判档卡.md" in _files["paint-brief"],
+       "打包：单图卡、判档卡、借来的青鸟两张卡都在安装包里")
+
 # ①½ 命令行：有问题退出码 1，没问题 0
 codes = []
 for name in ("02-推荐加单没点头.json", "01-合格-只要一张主图.json"):

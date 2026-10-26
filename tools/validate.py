@@ -205,6 +205,16 @@ def main(root):
     for m in sorted((root / "members").iterdir()):
         if (m / "skills").is_dir():
             totals[m.name] = check_member(m, root, errors)
+    # 借用：从起元原样借来的文件（正本在起元），要和正本一字不差；正本不在本机（如 CI）就跳过
+    cfg = json.loads((root / "tools" / "config.json").read_text(encoding="utf-8"))
+    for b in cfg.get("borrow", []):
+        copy, src = root / b["copy"], (root / b["source"]).resolve()
+        if not copy.exists():
+            errors.append(f"[borrow] {b['copy']}: 登记了借用，包里却没有这个文件")
+        elif not src.exists():
+            print(f"ℹ️ [borrow] 正本 {b['source']} 不在这台机器上，跳过比对")
+        elif copy.read_bytes() != src.read_bytes():
+            errors.append(f"[borrow] {b['copy']}: 和起元的正本 {b['source']} 不一样——正本改了要原样复制过来，不在复制件上改")
     for e in errors:
         print("❌", e)
     print(("✅ 全部通过" if not errors else f"共 {len(errors)} 处问题") + "｜" + "，".join(f"{k} {v} 字节" for k, v in totals.items()))

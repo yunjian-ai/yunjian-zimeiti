@@ -30,9 +30,10 @@ def collect_skills(member, table):
         body = filled(folder / "SKILL.md", table)
         meta = parse_frontmatter(body)
         cards = {}
-        for extra in sorted(folder.iterdir()):
-            if extra.is_file() and extra.name != "SKILL.md":
-                cards[extra.name] = filled(extra, table)
+        for extra in sorted(folder.rglob("*")):  # 子文件夹也收（如 paint-master/身份证/），键是相对路径
+            rel = extra.relative_to(folder).as_posix()
+            if extra.is_file() and rel != "SKILL.md" and not extra.name.startswith(".") and "__pycache__" not in rel:
+                cards[rel] = filled(extra, table)
         out.append({"name": meta["name"], "description": meta["description"], "content": body, "files": cards})
     return out
 

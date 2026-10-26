@@ -8,5 +8,17 @@
     "description_chars": 400,
     "skill_warn_bytes": 8192
   },
-  "feedback_url": "https://www.feishu.cn/share/base/form/shrcnFyVGCVJkpcH7lfjOD8Ec6b"
+  "feedback_url": "https://www.feishu.cn/share/base/form/shrcnFyVGCVJkpcH7lfjOD8Ec6b",
+  "borrow": [
+    {
+      "copy": "members/paint/skills/paint-make/借用/图片卡.md",
+      "source": "../起元/members/qingniao/skills/qingniao-write/图片卡.md",
+      "why": "丹青单图写提示词（规划书 v1.4 决策 32）"
+    },
+    {
+      "copy": "members/paint/skills/paint-make/借用/规则卡.md",
+      "source": "../起元/members/qingniao/skills/qingniao-write/规则卡.md",
+      "why": "图片卡要先过的底层规矩"
+    }
+  ]
 }
