@@ -143,6 +143,12 @@ with tempfile.TemporaryDirectory() as t:
         code = 细节.main([str(src), "--box", "25%,25%,75%,75%", "--out", str(Path(t) / "细节.png"), "--scale", "2"])
         report(code == 0 and 细节.size_of(Path(t) / "细节.png") == (64, 48), "按百分比裁细节并放大 2 倍")
     report(细节.main([str(src), "--box", "50,10,10,40", "--out", str(Path(t) / "x.png")]) in (2, 3), "左右写反要报错")
+    # v0.4.0：表情板 3x2 按名字存；名字个数对不上要报
+    faces = "平静,微笑,大笑,惊讶,难过,生气"
+    code = 细节.main([str(src), "--grid", "3x2", "--outdir", str(Path(t) / "表情"), "--prefix", "表情", "--names", faces])
+    if code != 3:
+        report(code == 0 and all((Path(t) / "表情" / f"表情-{x}.png").exists() for x in faces.split(",")), "表情板 3x2 按名字拆", f"退出 {code}")
+    report(细节.main([str(src), "--grid", "3x2", "--outdir", str(Path(t) / "表情2"), "--names", "平静,微笑"]) in (2, 3), "名字个数和格数对不上要报")
 
 
 def make_master(root, state="入库", samples=3, verdict="结论：全对，入库", hole=False, guess="主人确认"):
@@ -176,6 +182,39 @@ for name, kw, want in [("合格入库", {}, None), ("草稿不查样张", {"stat
 with tempfile.TemporaryDirectory() as t:
     errs, warns = check_master.check(make_master(t, guess="推测"))
     report(not errs and any("推测" in w for w in warns), "母版检查：推测没确认只提醒不拦", f"{errs} {warns}")
+
+
+# v0.4.0：人物的造型板、表情板——身份证写了就要有板，有板就要写
+def make_person(root, state="主人确认", look="白衬衫＋牛仔背带裙", faces="表情板：平静、微笑、大笑、惊讶、难过、生气", boards=("造型板.png", "表情板.png"), singles=True):
+    f = Path(root) / "小林"
+    for d in ["原件", "单张"]:
+        (f / d).mkdir(parents=True, exist_ok=True)
+    (f / "原件" / "a.jpg").write_bytes(b"x")
+    for b in ("母版板.png",) + tuple(boards):
+        (f / b).write_bytes(b"x")
+    if singles:
+        for x in check_master.FACES:
+            (f / "单张" / f"表情-{x}.png").write_bytes(b"x")
+    (f / "身份证.md").write_text(f"---\n种类: 人物\n名字: 小林\n版本: 1\n状态: {state}\n---\n\n## 不许改\n- 发型：齐肩短发\n\n## 造型（有造型板才写）\n- {look}\n\n## 表情（有表情板才写）\n- {faces}\n\n## 推测\n- 背影：照常理｜主人确认\n", encoding="utf-8")
+    (f / "版本.md").write_text("v1\n", encoding="utf-8")
+    return f
+
+
+for name, kw, want in [("人物三张板齐", {}, None),
+                       ("写了造型没造型板", {"boards": ("表情板.png",)}, "造型板"),
+                       ("有表情板没写表情", {"faces": "无"}, "表情板"),
+                       ("电商模特只有打底板", {"look": "无", "faces": "无", "boards": ()}, None),
+                       ("造型还有占位", {"look": "【这身固定造型】"}, "没填"),
+                       ("草稿可以先没板", {"state": "草稿", "boards": ()}, None)]:
+    with tempfile.TemporaryDirectory() as t:
+        errs, warns = check_master.check(make_person(t, **kw))
+        report((not errs) if want is None else any(want in e for e in errs), f"母版检查：{name}", f"{errs}")
+with tempfile.TemporaryDirectory() as t:
+    errs, warns = check_master.check(make_person(t, singles=False))
+    report(not errs and any("拆成单张" in w for w in warns), "母版检查：表情板没拆单张只提醒", f"{errs} {warns}")
+with tempfile.TemporaryDirectory() as t:  # 旧身份证没有造型、表情两节，照旧能过
+    f = make_master(t, state="主人确认", samples=0)
+    report(not check_master.check(f)[0], "母版检查：旧身份证没有造型表情两节照旧过")
 
 # ⑥ paint-make：交付裁压、叠图层
 sys.path.insert(0, str(HERE.parent / "skills" / "paint-make"))

@@ -2,7 +2,8 @@
 有 Pillow 用 Pillow；没有就用 macOS 自带的 sips；两样都没有就说清楚，改让模型「只做裁剪和清晰化，不改内容」。
 用法：python3 细节.py <原图> --box 左,上,右,下 --out 单张/细节-领口.png [--scale 2]
        （box 可写像素，也可写百分比：--box 30%,10%,70%,40%）
-     python3 细节.py <母版板> --grid 2x2 --outdir 单张/ [--prefix 板]      按行从左到右拆，存成 板-1.png…"""
+     python3 细节.py <母版板> --grid 2x2 --outdir 单张/ [--prefix 板]      按行从左到右拆，存成 板-1.png…
+     python3 细节.py 表情板.png --grid 3x2 --outdir 单张/ --prefix 表情 --names 平静,微笑,大笑,惊讶,难过,生气   按名字存成 表情-平静.png…"""
 import argparse
 import shutil
 import struct
@@ -102,6 +103,7 @@ def main(argv=None):
     ap.add_argument("--grid")
     ap.add_argument("--outdir")
     ap.add_argument("--prefix", default="格")
+    ap.add_argument("--names", help="逗号隔开，个数要和格数一样，按行从左到右对应")
     a = ap.parse_args(argv)
     try:
         w, h = size_of(a.src)
@@ -111,9 +113,13 @@ def main(argv=None):
     try:
         if a.grid:
             outdir = Path(a.outdir or ".")
-            for i, box in enumerate(grid_boxes(w, h, a.grid), 1):
-                crop(a.src, box, outdir / f"{a.prefix}-{i}.png", a.scale)
-                print(f"OK {outdir / f'{a.prefix}-{i}.png'}")
+            boxes = grid_boxes(w, h, a.grid)
+            names = [x.strip() for x in a.names.replace("，", ",").split(",")] if a.names else [str(i) for i in range(1, len(boxes) + 1)]
+            if len(names) != len(boxes):
+                raise ValueError(f"--names 给了 {len(names)} 个，板上有 {len(boxes)} 格")
+            for name, box in zip(names, boxes):
+                crop(a.src, box, outdir / f"{a.prefix}-{name}.png", a.scale)
+                print(f"OK {outdir / f'{a.prefix}-{name}.png'}")
         elif a.box and a.out:
             box = parse_box(a.box, w, h)
             crop(a.src, box, a.out, a.scale)

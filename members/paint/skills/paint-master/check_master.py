@@ -5,6 +5,8 @@
   主人确认  主人看过母版板说对（一次性的系列到这一步就能出图）——还要：不许改没有占位、有母版板、推测项都看过
   丹青自查  主人说「直接出」，丹青自己照验收打分表对原图验过——还要：不许改没有占位、验收.md 最后一行「结论：全对」
   入库      要反复用的母版——还要：不许改没有占位、3 张样张、验收.md 最后结论「全对，入库」
+人物还有两张可选的板（规划书 v1.6 决策 44、45）：身份证「## 造型」写了 → 要 造型板.png；「## 表情」写了 → 要 表情板.png；
+  有板却没写（或写「无」）也报。没有这两节的旧身份证当「无」。
 有问题打印 ❌ 并以 1 退出；只有提醒（⚠️）照样算过。"""
 import re
 import sys
@@ -15,6 +17,8 @@ IMG = {".png", ".jpg", ".jpeg", ".webp"}
 NEED_BOARD = {"商品", "人物", "场景"}  # 风格用代表图、品牌用原件，不生成母版板
 NEED_SAMPLES = {"商品", "人物", "场景", "风格"}
 STATES = ["草稿", "主人确认", "丹青自查", "入库"]
+EXTRA = {"造型": "造型板.png", "表情": "表情板.png"}  # 人物才有
+FACES = ["平静", "微笑", "大笑", "惊讶", "难过", "生气"]
 
 
 def images(d):
@@ -91,6 +95,21 @@ def check(folder):
         open_guess = [x for x in sec.get("推测", []) if x.endswith("推测")]
         if open_guess:
             warns.append(f"{len(open_guess)} 条推测主人还没看过（给主人看一眼，确认了改「主人确认」）")
+    if kind == "人物":
+        for name, board in EXTRA.items():
+            items = [x for x in sec.get(name, []) if x.strip() not in ("无", "")]
+            has = (f / board).exists()
+            if items and not has and state != "草稿":
+                errs.append(f"身份证写了「{name}」，却没有 {board}")
+            if has and not items:
+                errs.append(f"有 {board}，身份证「## {name}」却没写（或写了「无」）")
+            if items and state != "草稿" and any("【" in x for x in items):
+                errs.append(f"{state}了「{name}」还有没填的：{items[0][:30]}")
+        if (f / "表情板.png").exists():
+            got = {p.stem.split("-", 1)[-1] for p in (f / "单张").glob("表情-*")}
+            miss = [x for x in FACES if x not in got]
+            if miss:
+                warns.append(f"表情板还没拆成单张（缺 {'、'.join(miss)}）：python3 细节.py 表情板.png --grid 3x2 --outdir 单张/ --prefix 表情 --names 平静,微笑,大笑,惊讶,难过,生气")
     return errs, warns
 
 
