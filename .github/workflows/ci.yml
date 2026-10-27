@@ -11,7 +11,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: 装检查要用的库
-        run: pip install hypothesis jsonschema pyyaml requests
+        run: pip install hypothesis jsonschema pyyaml requests numpy imageio-ffmpeg
       - name: 格式和禁用词检查
         run: python3 tools/validate.py
       - name: 配方是不是最新
@@ -22,6 +22,8 @@ jobs:
         run: python3 members/pen/tests/run_tests.py
       - name: 丹青夹具、反向用例和脚本自测
         run: python3 members/paint/tests/run_tests.py
+      - name: 掠影脚本自测（节拍、分镜体检、抽帧、成片、质检）
+        run: python3 members/reel/tests/run_tests.py
       - name: 爆款卡检查脚本自测
         run: python3 members/pen/库/test_check_library.py
       - name: 爆款库目录通路测试
