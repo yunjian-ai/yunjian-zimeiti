@@ -2,6 +2,7 @@
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "reel-brief")); import 媒体
 ffmpeg 找法：环境变量 REEL_FFMPEG → 系统 ffmpeg → imageio-ffmpeg 自带的（pip install imageio-ffmpeg，约 21MB）。
 不用 ffprobe（imageio-ffmpeg 不带它），视频信息从 `ffmpeg -i` 的输出里读。"""
+import functools
 import os
 import re
 import shutil
@@ -9,21 +10,33 @@ import subprocess
 import sys
 
 
-def ffmpeg():
-    p = os.environ.get("REEL_FFMPEG") or shutil.which("ffmpeg")
-    if p:
-        return p
+def _候选():
+    if os.environ.get("REEL_FFMPEG"):
+        yield os.environ["REEL_FFMPEG"]
+    if shutil.which("ffmpeg"):
+        yield shutil.which("ffmpeg")
     try:
         import imageio_ffmpeg
-        return imageio_ffmpeg.get_ffmpeg_exe()
+        yield imageio_ffmpeg.get_ffmpeg_exe()
     except ImportError:
         pass
     import glob  # 别的 Python 装过 imageio-ffmpeg 也认（带着自己 Python 的软件里跑时常见）
     for pat in ("~/Library/Python/*/lib/python/site-packages/imageio_ffmpeg/binaries/ffmpeg-*",
                 "~/.local/lib/python*/site-packages/imageio_ffmpeg/binaries/ffmpeg-*", "/opt/homebrew/bin/ffmpeg", "/usr/local/bin/ffmpeg"):
-        hit = [p for p in glob.glob(os.path.expanduser(pat)) if os.access(p, os.X_OK)]
-        if hit:
-            return hit[0]
+        yield from (p for p in glob.glob(os.path.expanduser(pat)) if os.access(p, os.X_OK))
+
+
+@functools.lru_cache(maxsize=None)
+def ffmpeg():
+    """有的 ffmpeg 没带写字功能（drawtext，要 libfreetype），出不了大字：挑第一个带 drawtext 的。"""
+    见过 = []
+    for p in _候选():
+        r = subprocess.run([p, "-hide_banner", "-filters"], capture_output=True, text=True, errors="replace")
+        if " drawtext " in r.stdout:
+            return p
+        见过.append(p)
+    if 见过:
+        sys.exit(f"NO_FFMPEG：找到的 ffmpeg（{见过[0]}）没带写字功能（drawtext）。先问主人一句，同意后 pip install imageio-ffmpeg（约 21MB，自带完整 ffmpeg），再重跑")
     sys.exit("NO_FFMPEG：没找到 ffmpeg。先问主人一句，同意后运行 pip install imageio-ffmpeg（约 21MB，免费），再重跑")
 
 
