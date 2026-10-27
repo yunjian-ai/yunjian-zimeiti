@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # 执笔安装脚本（tools/pack.py 填好版本后生成 dist/install.sh）。不需要 gh，不需要登录。
-# 装、更新、修复：curl -fsSL https://raw.githubusercontent.com/yunjian-ai/yunjian-zimeiti/pen-v0.3.9/members/pen/dist/install.sh | bash
+# 装、更新、修复：curl -fsSL https://raw.githubusercontent.com/yunjian-ai/yunjian-zimeiti/pen-v0.3.10/members/pen/dist/install.sh | bash
 # 只体检、不改：  在 bash 后面加 -s -- --check
 # 当 Skill 用：   在 bash 前面加 PEN_SKILL_DIR=技能目录（比如 ~/.claude/skills）
 export GIT_TERMINAL_PROMPT=0
 MODE=${1:-install}
-T=pen-v0.3.9; R=https://github.com/yunjian-ai/yunjian-zimeiti
+T=pen-v0.3.10; R=https://github.com/yunjian-ai/yunjian-zimeiti
 RAW=https://raw.githubusercontent.com/yunjian-ai/yunjian-zimeiti/$T/members/pen/dist/recipe.json
 W=/tmp/yunjian-$T; RJ=/tmp/recipe-$T.json; rm -rf "${W:?}"
 git clone -q --depth 1 --branch "$T" "$R" "$W" 2>/dev/null && cp "$W/members/pen/dist/recipe.json" "$RJ" \
@@ -18,7 +18,7 @@ fi
 python3 - "$RJ" "$D" "$MODE" <<'PY'
 import hashlib, json, os, sys, time
 r = json.load(open(sys.argv[1], encoding="utf-8")); d, mode = sys.argv[2], sys.argv[3]
-assert r["version"] == "0.3.9", "版本不对"
+assert r["version"] == "0.3.10", "版本不对"
 ok = [s for s in r["skills"] if s["name"].startswith("pen-") and len(s["content"].encode()) <= 98304]
 assert len(ok) == len(r["skills"]), "技能校验没过"
 if not d:
@@ -63,8 +63,9 @@ json.dump({"version": r["version"], "tag": r["tag"], "installed": time.strftime(
 print("INSTALLED", len(ok), d)
 if saved:
     print("BACKUP", backup, ",".join(saved))
-print("NEXT 收尾照新装的 pen-install 第 3 步做；记忆里没有「执笔安装规矩」，就把下面 RULE 后面那段原样存成一条")
-print("RULE", r["memory"][0])
+print("NEXT 收尾照新装的 pen-install 第 3 步做；记忆里缺「执笔安装规矩」或「执笔装完规矩」，就把下面对应那行 RULE 后面那段原样存成一条")
+for e in r["memory"][:2]:
+    print("RULE", e)
 PY
 # 公共底盘库和抓取工具（克隆成功才有；「我的库」只建不碰，抓取里主人装的 .venv 不删）
 H=${PEN_HOME:-$HOME/.yunjian/pen}; L="$W/members/pen/库"

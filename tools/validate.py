@@ -84,14 +84,19 @@ def check_member(m, root, errors):
                 errors.append(f"[install] {name}: {where} 写了「不是某版就装」，要改成「没装或比这一版旧才装」（只升不降）")
             if "不装回" not in text:
                 errors.append(f"[install] {name}: {where} 没写「比这一版新就不装回旧版」（只升不降）")
-        # 两条记忆（shared/安装写法.md）：平台记忆改不准一条里的几格，所以分「安装规矩」（不变）和一行「安装状态」（装完、更新完整条换新）
+        # 三条记忆（shared/安装写法.md）：平台记忆改不准一条里的几格、一条最多 500 字，所以分「安装规矩」「装完规矩」（不变）和一行「安装状态」（装完、更新完整条换新）
         pj = json.loads(prof.read_text(encoding="utf-8"))
         m_cn = re.match(r"你是(.+?)（", pj.get("instructions", ""))  # 中文名以岗位说明第一句为准，Bot 名字可以另起
         cn = m_cn.group(1) if m_cn else pj.get("name", "").split(" · ")[0]
         entries = [e.strip() for e in places["memory.md"].split("\n\n") if e.strip()]
-        if len(entries) != 2 or not entries[0].startswith(f"【{cn}安装规矩】") or not re.fullmatch(
-                f"【{cn}安装状态】现在装的：[^\n｜]+｜上回查新版：[^\n｜]+｜更新方式：[^\n｜]+", entries[1]):
-            errors.append(f"[install] {name}: memory.md 要正好两段——「【{cn}安装规矩】…」和一行「【{cn}安装状态】现在装的：…｜上回查新版：…｜更新方式：…」")
+        if len(entries) != 3 or not entries[0].startswith(f"【{cn}安装规矩】") or not entries[1].startswith(f"【{cn}装完规矩】") or not re.fullmatch(
+                f"【{cn}安装状态】现在装的：[^\n｜]+｜上回查新版：[^\n｜]+｜更新方式：[^\n｜]+", entries[2]):
+            errors.append(f"[install] {name}: memory.md 要正好三段——「【{cn}安装规矩】…」「【{cn}装完规矩】…」和一行「【{cn}安装状态】现在装的：…｜上回查新版：…｜更新方式：…」")
+        # 平台一条记忆最多 500 字，超了后半截悄悄截掉（2026-10-27 实测）；按填好地址和版本号算，留 20 字余量
+        for e in entries:
+            n = len(e.replace("{{OWNER}}", "yunjian-ai").replace("{{REPO}}", "yunjian-zimeiti").replace("{{VERSION}}", "10.10.10"))
+            if n > 480:
+                errors.append(f"[install] {name}: memory.md 里「{e[:12]}…」填好后 {n} 字，一条记忆不能超过 480 字（平台到 500 字就截掉）")
         if "安装记录" in ins:
             errors.append(f"[install] {name}: 岗位说明还写着「安装记录」，改成「安装状态」")
         upd = m / "skills" / f"{name}-update" / "SKILL.md"

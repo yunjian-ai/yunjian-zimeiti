@@ -63,8 +63,9 @@ json.dump({"version": r["version"], "tag": r["tag"], "installed": time.strftime(
 print("INSTALLED", len(ok), d)
 if saved:
     print("BACKUP", backup, ",".join(saved))
-print("NEXT 收尾照新装的 pen-install 第 3 步做；记忆里没有「执笔安装规矩」，就把下面 RULE 后面那段原样存成一条")
-print("RULE", r["memory"][0])
+print("NEXT 收尾照新装的 pen-install 第 3 步做；记忆里缺「执笔安装规矩」或「执笔装完规矩」，就把下面对应那行 RULE 后面那段原样存成一条")
+for e in r["memory"][:2]:
+    print("RULE", e)
 PY
 # 公共底盘库和抓取工具（克隆成功才有；「我的库」只建不碰，抓取里主人装的 .venv 不删）
 H=${PEN_HOME:-$HOME/.yunjian/pen}; L="$W/members/pen/库"

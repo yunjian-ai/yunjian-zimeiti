@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # 丹青安装脚本（tools/pack.py 填好版本后生成 dist/install.sh）。不需要 gh，不需要登录。
-# 装、更新、修复：curl -fsSL https://raw.githubusercontent.com/yunjian-ai/yunjian-zimeiti/paint-v0.5.2/members/paint/dist/install.sh | bash
+# 装、更新、修复：curl -fsSL https://raw.githubusercontent.com/yunjian-ai/yunjian-zimeiti/paint-v0.5.3/members/paint/dist/install.sh | bash
 # 只体检、不改：  在 bash 后面加 -s -- --check
 # 当 Skill 用：   在 bash 前面加 PAINT_SKILL_DIR=技能目录（比如 ~/.claude/skills）
 export GIT_TERMINAL_PROMPT=0
 MODE=${1:-install}
-T=paint-v0.5.2; R=https://github.com/yunjian-ai/yunjian-zimeiti
+T=paint-v0.5.3; R=https://github.com/yunjian-ai/yunjian-zimeiti
 RAW=https://raw.githubusercontent.com/yunjian-ai/yunjian-zimeiti/$T/members/paint/dist/recipe.json
 W=/tmp/yunjian-$T; RJ=/tmp/recipe-$T.json; rm -rf "${W:?}"
 git clone -q --depth 1 --branch "$T" "$R" "$W" 2>/dev/null && cp "$W/members/paint/dist/recipe.json" "$RJ" \
@@ -18,7 +18,7 @@ fi
 python3 - "$RJ" "$D" "$MODE" <<'PY'
 import hashlib, json, os, sys, time
 r = json.load(open(sys.argv[1], encoding="utf-8")); d, mode = sys.argv[2], sys.argv[3]
-assert r["version"] == "0.5.2", "版本不对"
+assert r["version"] == "0.5.3", "版本不对"
 ok = [s for s in r["skills"] if s["name"].startswith("paint-") and len(s["content"].encode()) <= 98304]
 assert len(ok) == len(r["skills"]), "技能校验没过"
 if not d:
@@ -63,8 +63,9 @@ json.dump({"version": r["version"], "tag": r["tag"], "installed": time.strftime(
 print("INSTALLED", len(ok), d)
 if saved:
     print("BACKUP", backup, ",".join(saved))
-print("NEXT 收尾照新装的 paint-install 第 3 步做；记忆里没有「丹青安装规矩」，就把下面 RULE 后面那段原样存成一条")
-print("RULE", r["memory"][0])
+print("NEXT 收尾照新装的 paint-install 第 3 步做；记忆里缺「丹青安装规矩」或「丹青装完规矩」，就把下面对应那行 RULE 后面那段原样存成一条")
+for e in r["memory"][:2]:
+    print("RULE", e)
 PY
 # 公共库（克隆成功才有；整份换新）。「我的库」只建不碰
 H=${PAINT_HOME:-$HOME/.yunjian/paint}; L="$W/members/paint/库"

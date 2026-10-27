@@ -63,8 +63,9 @@ json.dump({"version": r["version"], "tag": r["tag"], "installed": time.strftime(
 print("INSTALLED", len(ok), d)
 if saved:
     print("BACKUP", backup, ",".join(saved))
-print("NEXT 收尾照新装的 reel-install 第 3 步做；记忆里没有「掠影安装规矩」，就把下面 RULE 后面那段原样存成一条")
-print("RULE", r["memory"][0])
+print("NEXT 收尾照新装的 reel-install 第 3 步做；记忆里缺「掠影安装规矩」或「掠影装完规矩」，就把下面对应那行 RULE 后面那段原样存成一条")
+for e in r["memory"][:2]:
+    print("RULE", e)
 PY
 # 公共库（克隆成功才有；整份换新）。「我的库」只建不碰
 H=${REEL_HOME:-$HOME/.yunjian/reel}; L="$W/members/reel/库"
