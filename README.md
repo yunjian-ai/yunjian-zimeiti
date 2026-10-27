@@ -96,6 +96,7 @@
    |---|---|
    | 执笔 Pen | https://x.ai/bot/NJcMysJV_8mT5AjEJWziD |
    | 丹青 Paint | https://x.ai/bot/Bc4lfX4CiqRjHUrNmRnTz |
+   | 掠影 Reel | https://x.ai/bot/Ciazw-UqOPcdDDEYN6M-7 |
 
 2. 第一次对话时它会问能不能从本仓库装齐技能，说可以，一分钟装好，不装插件、不要密钥。
 
@@ -104,7 +105,7 @@
 ```bash
 curl -fsSL https://raw.githubusercontent.com/yunjian-ai/yunjian-zimeiti/pen-v0.3.8/members/pen/dist/install.sh | bash
 curl -fsSL https://raw.githubusercontent.com/yunjian-ai/yunjian-zimeiti/paint-v0.5.1/members/paint/dist/install.sh | bash
-curl -fsSL https://raw.githubusercontent.com/yunjian-ai/yunjian-zimeiti/reel-v0.1.2/members/reel/dist/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/yunjian-ai/yunjian-zimeiti/reel-v0.1.3/members/reel/dist/install.sh | bash
 ```
 
 **更新、修复、反馈**，都是一句话：
@@ -122,7 +123,7 @@ curl -fsSL https://raw.githubusercontent.com/yunjian-ai/yunjian-zimeiti/reel-v0.
 |---|---|---|---|
 | 万象 | 执笔 Pen | 写稿：口播、长文、仿写、多平台 | ✅ v0.3.8 |
 | 万象 | 丹青 Paint | 做图：单图直接出，系列图立母版锁人锁货，按平台规格出图；字、价格、多颜色、批量交 PhotoCraft 精确排，能出 PSD；拖着调 | ✅ v0.5.1 |
-| 万象 | 掠影 Reel | 短视频：锁人锁货锁场景，按拍子分镜，一刀一刀出静帧和视频，卡点剪辑、质检；这一版音乐 MV | ✅ v0.1.2 |
+| 万象 | 掠影 Reel | 短视频：锁人锁货锁场景，按拍子分镜，一刀一刀出静帧和视频，卡点剪辑、质检；这一版音乐 MV | ✅ v0.1.3 |
 | 万象 | 掠影 Reel | 带货片、口播片 | 规划中 |
 
 起元系列（提示词、Skill、蒸馏、本体、验证、统筹）在 [yunjian-ai/yunjian](https://github.com/yunjian-ai/yunjian)。
