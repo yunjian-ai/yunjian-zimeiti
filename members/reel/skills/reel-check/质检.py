@@ -6,6 +6,9 @@
   python3 质检.py 联系表 <成片.mp4> <出.jpg> [--每 1]     每隔几秒一格、5 格一行，人眼按坑清单看
   python3 质检.py 审片 <成片.mp4> <出.mp4> [--mb 20]      压一份小文件发手机、微信看（不是发布用的）
   python3 质检.py 封面 <成片.mp4> <出.jpg> --秒 1.7        从成片里取一帧原尺寸当封面底图
+  python3 质检.py 安全区 <成片.mp4> <出.jpg> [--秒 3,8,12]   在这几秒的画面上画出按钮区（上 10%、下 20%、右 15%），人眼看字和货有没有压进去
+  python3 质检.py 封面AB <出文件夹> --图 a.png b.png --题 "标题一|标题二|标题三" [--比例 3:4]
+      带货片封面 A/B：干净底图（静帧，不要用带字幕的成片帧）× 几个标题 × 4 种版式轮换，出 封面_A.jpg… 和对比图 封面对比.jpg
 规格读 库/视频规格.json（装好在 ~/.yunjian/reel/库/）。"""
 import argparse
 import json
@@ -21,7 +24,7 @@ import 媒体  # noqa: E402
 
 
 def 规格():
-    for p in (Path.home() / ".yunjian" / "reel" / "库" / "视频规格.json", HERE.parent.parent / "库" / "视频规格.json"):
+    for p in (HERE.parent.parent / "库" / "视频规格.json", Path.home() / ".yunjian" / "reel" / "库" / "视频规格.json"):  # 包里带的优先（和脚本同一版）
         if p.exists():
             return json.loads(p.read_text(encoding="utf-8"))
     return {"默认": {"竖": {"宽": 1080, "高": 1920}, "横": {"宽": 1920, "高": 1080}, "帧率": [24, 60], "码率上限Mbps": 10,
@@ -69,6 +72,10 @@ def 查(g):
         sys.exit(f"NO_VIDEO：{g.视频} 里没有画面")
     竖 = d["高"] > d["宽"]
     要 = 默["竖" if 竖 else "横"]
+    按比例 = {(3, 4): (1080, 1440), (4, 3): (1440, 1080), (1, 1): (1080, 1080)}  # 详情页、小红书这类 3:4、1:1 版不拿 9:16 去套（Bot 实测误报）
+    for (a, b), (w, h) in 按比例.items():
+        if abs(d["宽"] / d["高"] - a / b) < 0.02:
+            要 = {"宽": w, "高": h}
     if (d["宽"], d["高"]) != (要["宽"], 要["高"]):
         坏.append((f"分辨率 {d['宽']}×{d['高']}，应该是 {要['宽']}×{要['高']}", "reel-cut 成片.py 按默认尺寸重出（720p 素材会自动放大）"))
     if g.秒 and abs(d["时长"] - g.秒) > 0.15:
@@ -116,7 +123,17 @@ def 查(g):
         if p.get("声道上限") and d.get("声道") and d["声道"] > p["声道上限"]:
             坏.append((f"{名} 要求声道不超过 {p['声道上限']}，这条是 {d['声道']} 声道", "成片.py 重出（跟着歌，单声道或立体声）"))
         if p.get("时长上限秒") and d["时长"] > p["时长上限秒"]:
-            坏.append((f"超过 {名} 时长上限", "剪短"))
+            坏.append((f"{d['时长']:.1f} 秒，超过 {名} 时长上限 {p['时长上限秒']} 秒", "剪短（删刀或删台词）"))
+        if p.get("时长下限秒") and d["时长"] < p["时长下限秒"]:
+            坏.append((f"{d['时长']:.1f} 秒，不到 {名} 要求的 {p['时长下限秒']} 秒", "加一刀或放慢"))
+        if p.get("大小上限MB") and Path(g.视频).stat().st_size / 1e6 > p["大小上限MB"]:
+            坏.append((f"文件 {Path(g.视频).stat().st_size / 1e6:.0f}MB，超过 {名} 上限 {p['大小上限MB']}MB", "用「审片」那样压一版，或剪短"))
+        if p.get("格式") and Path(g.视频).suffix.lower().lstrip(".") not in p["格式"]:
+            坏.append((f"{名} 只收 {'、'.join(p['格式'])}", "成片.py 出的是 mp4，换那一份"))
+        if p.get("画幅"):
+            比 = {f"{a}:{b}": a / b for a, b in ((1, 1), (3, 4), (4, 3), (9, 16), (16, 9))}
+            if not any(abs(d["宽"] / d["高"] - 比[x]) < 0.02 for x in p["画幅"] if x in 比):
+                坏.append((f"{d['宽']}×{d['高']} 不是 {名} 收的画幅（{'、'.join(p['画幅'])}）", "剪辑.json 改画幅重出"))
         if p.get("提醒") and 名.strip() != "抖音":
             提醒.append((f"{名}：{p['提醒']}", "交付时告诉主人"))
         if 名.strip() == "抖音" and 竖 and d["时长"] > 40:
@@ -167,6 +184,66 @@ def 封面(g):
     return 0
 
 
+def 安全区(g):
+    d = 媒体.信息(g.视频)
+    W, H = d["宽"], d["高"]
+    秒们 = [float(x) for x in (g.秒 or "").replace("，", ",").split(",") if x.strip()] or [min(1.5, d["时长"] / 2), d["时长"] / 2, d["时长"] - 0.5]
+    框 = (f"drawbox=x=0:y=0:w=iw:h=ih*0.10:color=red@0.35:t=fill,drawbox=x=0:y=ih*0.80:w=iw:h=ih*0.20:color=red@0.35:t=fill,"
+         f"drawbox=x=iw*0.85:y=0:w=iw*0.15:h=ih:color=red@0.25:t=fill")
+    选 = "+".join(f"eq(n\\,{int(round(t * (d.get('帧率') or 30)))})" for t in 秒们)
+    w, h = (360, 640) if H > W else (640, 360)
+    媒体.跑("-i", g.视频, "-vf", f"select='{选}',{框},scale={w}:{h},tile={len(秒们)}x1:padding=4:color=0x101010", "-frames:v", "1", g.出)
+    print(f"OK {g.出}：{'、'.join(f'{t:.1f}' for t in 秒们)} 秒，红色是按钮区（上 10%、下 20%、右 15%，推算值）。字、价格、商品主体压进红区就要挪")
+    return 0
+
+
+def 封面AB(g):
+    try:
+        from PIL import Image, ImageDraw, ImageFont
+    except ImportError:
+        sys.exit("NO_PIL：要 PIL（pip install pillow）")
+    sys.path.insert(0, str(HERE.parent / "reel-cut"))
+    import 字体
+    题们 = [x.strip() for x in g.题.split("|") if x.strip()]
+    W, H = {"3:4": (1080, 1440), "9:16": (1080, 1920), "1:1": (1080, 1080)}[g.比例]
+    f = 字体.找("中文")
+    版式 = [("黄字黑边", (255, 215, 51), (0, 0, 0), None), ("白字红边", (255, 255, 255), (220, 40, 40), None),
+          ("黄底黑字", (20, 20, 20), None, (255, 215, 51)), ("黑底白字", (255, 255, 255), None, (0, 0, 0, 150))]
+    出 = Path(g.出)
+    出.mkdir(parents=True, exist_ok=True)
+    小们 = []
+    for i, 题 in enumerate(题们):
+        if len(题) > 14:
+            print(f"⚠️ 「{题}」{len(题)} 字，手机缩略图上看不清，最好 14 字以内", file=sys.stderr)
+        底 = Image.open(g.图[i % len(g.图)]).convert("RGB")
+        r = max(W / 底.width, H / 底.height)
+        底 = 底.resize((int(底.width * r) + 1, int(底.height * r) + 1)).crop((0, 0, W, H))
+        名, 字色, 边色, 块色 = 版式[i % len(版式)]
+        字 = ImageFont.truetype(f, int(min(W * 0.11, W * 0.86 / max(1, len(题)))))
+        画 = ImageDraw.Draw(底, "RGBA")
+        宽 = 画.textlength(题, font=字)
+        x, y = (W - 宽) / 2, H * 0.12
+        if 块色:
+            画.rectangle((x - W * 0.04, y - W * 0.03, x + 宽 + W * 0.04, y + 字.size * 1.25), fill=块色)
+        画.text((x, y), 题, font=字, fill=字色, stroke_width=int(字.size * 0.08) if 边色 else 0, stroke_fill=边色)
+        p = 出 / f"封面_{chr(65 + i)}.jpg"
+        底.save(p, quality=92)
+        小们.append((chr(65 + i), 名, 题, 底.resize((W // 3, H // 3))))
+        print(f"{chr(65 + i)}：{题}｜{名}｜底图 {Path(g.图[i % len(g.图)]).name} → {p}")
+    拼 = Image.new("RGB", (len(小们) * (W // 3 + 10), H // 3 + 60), (16, 16, 16))
+    标 = ImageFont.truetype(f, 28)
+    for k, (号, 名, 题, im) in enumerate(小们):
+        拼.paste(im, (k * (W // 3 + 10), 0))
+        ImageDraw.Draw(拼).text((k * (W // 3 + 10) + 8, H // 3 + 14), f"{号} {名}", font=标, fill=(255, 255, 255))
+    拼.save(出 / "封面对比.jpg", quality=90)
+    记 = 出 / "AB记录表.md"
+    if not 记.exists():
+        记.write_text("| 版本 | 标题 | 版式 | 发布时间 | 曝光 | 点击率 | 完播率 | 结论 |\n|---|---|---|---|---|---|---|---|\n"
+                     + "".join(f"| {号} | {题} | {名} | | | | | |\n" for 号, 名, 题, _ in 小们), encoding="utf-8")
+    print(f"OK 对比图 {出 / '封面对比.jpg'}、记录表 {记}。一次只改一个变量（标题或底图或版式），看平台数据定，不凭感觉")
+    return 0
+
+
 def main():
     ap = argparse.ArgumentParser(description="成片质检和导出")
     sub = ap.add_subparsers(dest="做", required=True)
@@ -187,8 +264,17 @@ def main():
     e.add_argument("视频")
     e.add_argument("出")
     e.add_argument("--秒", type=float, required=True)
+    f = sub.add_parser("安全区")
+    f.add_argument("视频")
+    f.add_argument("出")
+    f.add_argument("--秒")
+    h = sub.add_parser("封面AB")
+    h.add_argument("出")
+    h.add_argument("--图", nargs="+", required=True)
+    h.add_argument("--题", required=True)
+    h.add_argument("--比例", default="3:4", choices=["3:4", "9:16", "1:1"])
     g = ap.parse_args()
-    sys.exit({"查": 查, "联系表": 联系表, "审片": 审片, "封面": 封面}[g.做](g))
+    sys.exit({"查": 查, "联系表": 联系表, "审片": 审片, "封面": 封面, "安全区": 安全区, "封面AB": 封面AB}[g.做](g))
 
 
 if __name__ == "__main__":

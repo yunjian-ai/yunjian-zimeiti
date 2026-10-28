@@ -70,6 +70,61 @@ with tempfile.TemporaryDirectory() as t:
     应该(code == 0, "体检.py：干净的表没放行：" + out[-300:])
 
 
+# 带货片（v0.2）：镜头表认四列、改时间只改那一格；合规挑出考题 B6 那几类；体检要求卖点有证明；字幕 ASS 字体名带粗细
+带货表 = """| # | 进–出（秒） | 景别 | 镜头动作 | 画面 | 台词 | 字幕 | 花字 | 卖点 | 素材 | 备注 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | 0–2 | 近景 | 快推 | 拉领口 | 毛衣总扎脖子？ | 毛衣总**扎脖子**？ | 扎脖子？ | — | 静帧/01.png | 钩子 |
+| 2 | 2–4.6 | 中景 | 慢推 | 亮相 | 试试这件手工粗针开衫。 | 试试这件**手工粗针**开衫 | — | — | 静帧/02.png | |
+| 3 | 4.6–7.5 | 特写 | 微距推近 | 针目 | 一针一针手工织。 | 一针一针／**手工织** | 手工粗针 | 手工粗针 | 静帧/03.png | |
+| 4 | 7.5–10 | 近景 | 慢推 | 扣子 | 五颗胡桃木扣。 | 五颗**胡桃木扣** | — | 胡桃木扣 | 静帧/04.png | 字幕上 |
+| 5 | 10–13 | 中景 | 静止 | 结尾卡 | 喜欢就点下方小黄车。 | 喜欢就点**小黄车** | — | — | 静帧/05.png | 行动号召 |
+"""
+sys.path.insert(0, str(S / "reel-board"))
+import 镜头表  # noqa: E402
+with tempfile.TemporaryDirectory() as t:
+    P = Path(t) / "开衫"
+    P.mkdir()
+    (P / "分镜.md").write_text(带货表, encoding="utf-8")
+    (P / "卖点.md").write_text("卖点：手工粗针 · 新西兰羊毛 · 胡桃木扣\n吊牌：羊毛 70%、锦纶 30%\n", encoding="utf-8")
+    表 = 镜头表.读镜头表(P / "分镜.md")
+    应该(表[2]["台词"] == "一针一针手工织。" and 表[2]["卖点"] == "手工粗针" and 表[0]["花字"] == "扎脖子？" and 表[0].get("大字", "") == "",
+         "镜头表.py：带货四列没认对（字幕、花字不能被当成大字）")
+    原 = (P / "分镜.md").read_text(encoding="utf-8")
+    镜头表.改时间(P / "分镜.md", {"1": (0, 1.5), "2": (1.5, 4.0)})
+    新 = (P / "分镜.md").read_text(encoding="utf-8")
+    应该("| 0.00–1.50 |" in 新 and "| 1.50–4.00 |" in 新 and 新.count("|") == 原.count("|") and "毛衣总**扎脖子**？" in 新,
+         "镜头表.py 改时间：只该改进–出那一格")
+    code, out = 跑("reel-check/合规.py", str(P))
+    应该(code == 0 and "PASS" in out, "合规.py：干净的台词不该报：" + out[-300:])
+    坏词 = 带货表.replace("毛衣总扎脖子？ |", "这是最好看的开衫！ |").replace("一针一针手工织。 |", "顶级手工，100% 羊毛，零扎感。 |") \
+        .replace("五颗胡桃木扣。 |", "加微信 maoyi_8888 领券。 |")
+    (P / "分镜.md").write_text(坏词, encoding="utf-8")
+    code, out = 跑("reel-check/合规.py", str(P))
+    for 词 in ("最好看", "顶级", "100%", "导流", "零扎"):
+        应该(词 in out, f"合规.py：没报出「{词}」")
+    应该(code == 1 and out.count("「最好") == 1, "合规.py：有 ❌ 退出码应该是 1，「最好」「最好看」只报一次")
+    (P / "卖点.md").write_text("卖点：手工粗针 · 胡桃木扣\n吊牌：羊毛 70%\n不能写：纯羊毛、零扎感\n", encoding="utf-8")
+    code, out = 跑("reel-check/合规.py", str(P))
+    应该("零扎" in out, "合规.py：卖点.md 里「不能写」那行的词不该算出处")
+    (P / "分镜.md").write_text(带货表.replace("| 手工粗针 | 静帧/03.png", "| — | 静帧/03.png").replace("| 胡桃木扣 | 静帧/04.png", "| — | 静帧/04.png"), encoding="utf-8")
+    code, out = 跑("reel-board/体检.py", str(P / "分镜.md"))
+    应该(code == 1 and "证明哪个卖点" in out, "体检.py：带货片中间几刀没写卖点没拦住")
+    sys.path.insert(0, str(S / "reel-cut"))
+    import 字幕  # noqa: E402
+    for 名, 粗细, 应 in (("Source Han Sans CN", "Heavy", "Source Han Sans CN Heavy"), ("Noto Sans CJK SC", "Bold", "Noto Sans CJK SC")):
+        class 假:
+            def getname(self, 名=名, 粗细=粗细):
+                return (名, 粗细)
+        try:
+            from PIL import ImageFont
+            原函数 = ImageFont.truetype
+            ImageFont.truetype = lambda *a, **k: 假()
+            应该(字幕.字体名("x") == 应, f"字幕.py：字体名应该是「{应}」（只写家族名 libass 认不出 Heavy，会变方框）")
+            ImageFont.truetype = 原函数
+        except ImportError:
+            pass
+
+
 def 有音视频工具():
     try:
         import numpy  # noqa: F401
@@ -194,6 +249,48 @@ if 有音视频工具():
         except ImportError:
             code, out = 跑("reel-cut/抠像.py", str(P / "视频" / "01.mp4"), str(Path(t) / "遮罩.mp4"))
             应该(code == 3 and "MATTE_DEPS_MISSING" in out, "抠像.py：没装 rembg 时应该说清怎么装、退出码 3")
+    # 带货片出片：配音用 ffmpeg 合成的音代替（测试不联网）；排时间、粗剪、成片、质检、抖店详情页规格
+    with tempfile.TemporaryDirectory() as t:
+        P = Path(t) / "开衫"
+        for d in ("静帧", "配音", "音乐", "进度"):
+            (P / d).mkdir(parents=True)
+        (P / "分镜.md").write_text(带货表, encoding="utf-8")
+        for k in range(1, 6):
+            媒体.跑("-f", "lavfi", "-i", f"testsrc2=s=1080x1920:d=1", "-frames:v", "1", P / "静帧" / f"{k:02d}.png")
+            媒体.跑("-f", "lavfi", "-i", f"sine=frequency={300 + k * 40}:duration={1.0 + k * 0.2}", "-ar", "48000", P / "配音" / f"{k:02d}.wav")
+        (P / "配音" / "时长.json").write_text(json.dumps({str(k): {"秒": 1.0 + k * 0.2, "合成": False} for k in range(1, 6)}), encoding="utf-8")
+        code, out = 跑("reel-voice/配音.py", "排时间", str(P))
+        末 = 镜头表.读镜头表(P / "分镜.md")[-1]
+        应该(code == 0 and 末["出"] - 末["进"] >= 3.0 - 0.01, "配音.py 排时间：最后一刀行动号召要至少 3 秒：" + out[-200:])
+        (P / "剪辑.json").write_text(json.dumps({"贴纸": "测试店", "价格": "¥99"}, ensure_ascii=False), encoding="utf-8")
+        code, out = 跑("reel-cut/成片.py", "粗剪", str(P))
+        应该(code == 0, "成片.py 带货粗剪没出来：" + out[-400:])
+        跑("reel-brief/进度.py", "关口", str(P), "粗剪", "过")
+        code, out = 跑("reel-cut/成片.py", "成片", str(P))
+        应该(code == 0 and (P / "出片" / "成片.mp4").exists() and (P / "出片" / "字幕.ass").exists(), "成片.py 带货成片没出来：" + out[-400:])
+        ass = (P / "出片" / "字幕.ass").read_text(encoding="utf-8") if (P / "出片" / "字幕.ass").exists() else ""
+        应该("\\1c&H0033D7FF&}扎脖子" in ass and "Style: CTA" in ass and "¥99" in ass and "测试店" in ass, "字幕.py：高亮、价格、贴纸、行动号召没写进 ASS")
+        应该(ass.count(",Sub,,") >= 5 and ",SubTop,," in ass, "字幕.py：「／」分段的字幕没拆成两条，或备注「字幕上」那刀没挪上去")
+        code, out = 跑("reel-check/质检.py", "查", str(P / "出片" / "成片.mp4"))
+        应该(code == 0, "质检.py：带货成片没过机器检查：" + out[-500:])
+        媒体.跑("-f", "lavfi", "-i", "color=c=gray:s=1080x1920:d=62", "-f", "lavfi", "-i", "sine=duration=62", "-c:v", "libx264",
+               "-pix_fmt", "yuv420p", "-shortest", P / "长.mp4")
+        code, out = 跑("reel-check/质检.py", "查", str(P / "长.mp4"), "--平台", "抖店详情页")
+        应该(code == 1 and "时长上限 60" in out, "质检.py：抖店详情页 62 秒没拦住")
+        (P / "剪辑.json").write_text(json.dumps({"贴纸": "测试店", "价格": "¥99", "画幅": "3:4"}, ensure_ascii=False), encoding="utf-8")
+        code, out = 跑("reel-cut/成片.py", "成片", str(P))
+        code, out = 跑("reel-check/质检.py", "查", str(P / "出片" / "成片_v2.mp4"), "--平台", "抖店详情页")
+        应该(code == 0 and "1080×1440" in out, "质检.py：3:4 详情页版不该拿 1080×1920 去套：" + out[-400:])
+        code, out = 跑("reel-check/质检.py", "安全区", str(P / "出片" / "成片.mp4"), str(P / "安全区.jpg"))
+        应该(code == 0 and (P / "安全区.jpg").exists(), "质检.py 安全区图没出来：" + out[-200:])
+        try:
+            import PIL  # noqa: F401
+            code, out = 跑("reel-cut/卡片.py", "结尾", str(P / "静帧" / "01.png"), "-o", str(P / "卡.png"), "--名", "开衫", "--点", "手工粗针／胡桃木扣", "--价", "¥99")
+            应该(code == 0 and (P / "卡.png").exists(), "卡片.py 结尾卡没出来：" + out[-200:])
+            code, out = 跑("reel-check/质检.py", "封面AB", str(P / "封面"), "--图", str(P / "静帧" / "02.png"), "--题", "标题一|标题二")
+            应该(code == 0 and (P / "封面" / "封面对比.jpg").exists() and (P / "封面" / "封面_B.jpg").exists(), "质检.py 封面AB 没出来：" + out[-200:])
+        except ImportError:
+            pass
 else:
     print("（没有 numpy 或 ffmpeg，音视频脚本的用例跳过）")
 

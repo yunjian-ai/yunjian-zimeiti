@@ -2,14 +2,14 @@
 
 <h1 align="center">云间Bot · 万象 Cloudmere</h1>
 
-<p align="center"><b>一元复始，万象更新。</b><br>起元教 AI 做事，万象替你把自己的事讲出去。执笔把你亲手做过的事落笔成文：口播一开口就留得住人，长文读着像你本人在讲；丹青替你作画：一张原图立成母版，同一件货、同一个人换多少张都还是它；掠影替你成片：一张人物照加一首歌，卡着拍子剪成人不走样的短视频。你只管开口。</p>
+<p align="center"><b>一元复始，万象更新。</b><br>起元教 AI 做事，万象替你把自己的事讲出去。执笔把你亲手做过的事落笔成文：口播一开口就留得住人，长文读着像你本人在讲；丹青替你作画：一张原图立成母版，同一件货、同一个人换多少张都还是它；掠影替你成片：一张人物照加一首歌，卡着拍子剪成人不走样的短视频；一件货加几个卖点，做成带配音字幕、能挂车的带货片。你只管开口。</p>
 
 <p align="center">执笔 Pen · cloudmere · Grok Bot 口播稿、长文、仿写、去 AI 味、多平台改写助手 · 仓库 <a href="https://github.com/yunjian-ai/yunjian-zimeiti">github.com/yunjian-ai/yunjian-zimeiti</a></p>
 
 <p align="center">
   <a href="CHANGELOG.md"><img alt="执笔" src="https://img.shields.io/badge/执笔-v0.3.10-c0392b"></a>
   <a href="CHANGELOG.md"><img alt="丹青" src="https://img.shields.io/badge/丹青-v0.5.4-2f6f9f"></a>
-  <a href="CHANGELOG.md"><img alt="掠影" src="https://img.shields.io/badge/掠影-v0.1.5-7a4fa0"></a>
+  <a href="CHANGELOG.md"><img alt="掠影" src="https://img.shields.io/badge/掠影-v0.2.0-7a4fa0"></a>
   <a href="LICENSE"><img alt="license" src="https://img.shields.io/badge/license-CC%20BY%204.0%20%2B%20MIT-555555"></a>
   <a href="https://github.com/yunjian-ai/yunjian-zimeiti/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/yunjian-ai/yunjian-zimeiti/actions/workflows/ci.yml/badge.svg"></a>
 </p>
@@ -70,21 +70,22 @@
 
 ## 掠影 · Reel
 
-> 你给一张人物照（有货、有场景照也一起）和一首歌，它先把人、货、场景定妆锁住，按拍子排好分镜请你点头，再一刀一刀出静帧和视频、只取每条能用的那一截，卡着拍子剪成一条竖版短片；花额度之前先报给你。这一版做音乐 MV（人＋歌），带货片、口播片在后面。
+> 你给一张人物照（有货、有场景照也一起）和一首歌，它先把人、货、场景定妆锁住，按拍子排好分镜请你点头，再一刀一刀出静帧和视频、只取每条能用的那一截，卡着拍子剪成一条竖版短片；花额度之前先报给你。现在做两种：音乐 MV（人＋歌）、带货片（货＋卖点：3 秒钩子、每个卖点一刀证明画面、配音字幕、下单提醒）；口播片在后面。
 
-**九个技能，各干一步**
+**十个技能，各干一步**
 
 | # | 技能 | 做什么 |
 |---|---|---|
 | 1 | 第一次见面 | 一次问一件：常做什么片、发哪些平台、出视频用什么，建好掠影档案；支持「演练」 |
-| 2 | 接一条片子 | 一条消息问完类型、平台画幅、时长、风格、人货景、歌、预算，每项带推荐；出视频前先报额度（几刀、几条、会员额度够不够）；官方规格没核过的平台不出成品 |
+| 2 | 接一条片子 | 一条消息问完类型（音乐 MV／带货片自己判）、平台画幅、时长、风格、人货景、歌或卖点、预算，每项带推荐；卖点只用你给的和吊牌原文；出视频前先报额度（几刀、几条、会员额度够不够）；官方规格没核过的平台不出成品 |
 | 3 | 锁人锁货锁场景 | 一张照片就能立：人物三视图、标准脸、货品多视图、场景两个视角、三份锁定清单、4 张试镜；看不到的标「推测」；你确认才往下 |
 | 4 | 歌和拍子 | 你的歌、自带的 3 首免版权曲，或写好歌词和风格提示词让你在 Suno 里做；扒速度和大落点，从重拍剪到重拍，剪完再扒、给你戴耳机听的打点试听；歌词逐字对时间 |
-| 5 | 分镜 | 机器按拍子出切点，一刀一个镜头动作、相邻景别不同、不对口型、姿势像真人，最猛的镜头放大落点；体检脚本查 11 类毛病；你点头才出静帧 |
+| 5 | 分镜 | 机器按拍子出切点，一刀一个镜头动作、相邻景别不同、不对口型、姿势像真人，最猛的镜头放大落点；体检脚本查 11 类毛病；带货片先出 6～10 个开头给你挑，再排卖点分镜（每个卖点一刀证明画面、商品 3 秒内出镜），能照同行爆款拆结构复刻；你点头才出静帧 |
+| 5½ | 配音 | 带货片的台词改成好念的，免费 AI 音色先试听两句，定了整条合成、按真实时长排时间；你自己录的也能用，店里固定一个声音 |
 | 6 | 每刀静帧 | 先出 3 张给你看，提示词带锁定清单全文，参考图带标准脸、三视图、货品、场景；逐项核对，不对就重出，不修图了事 |
 | 7 | 每刀视频 | 静帧当首帧图生视频，一条一条出、抽帧拼表看，记下每条能用的那一截；重出 3 次不行就用静帧慢推 |
-| 8 | 卡点剪辑 | 先出粗剪给你定节奏；成片只取能用的那一截、切点踩拍，一刀一个大字（能抠像就压在人身后）、逐字歌词、HUD、调色 6 套、闪帧、颗粒、片尾，响度标准化；改版给勾选项，只改勾到的，旧版不删 |
-| 9 | 质检交付 | 分辨率、码率、响度、真峰值、黑屏、闪烁（光敏）脚本查，坑清单 32 条逐条看；导出成片、审片小文件、封面；提醒你勾「AI 生成」声明、不放站外导流、歌和肖像的授权 |
+| 8 | 剪辑出片 | 先出粗剪给你定节奏；成片只取能用的那一截、切点踩拍，一刀一个大字（能抠像就压在人身后）、逐字歌词、HUD、调色 6 套、闪帧、颗粒、片尾，响度标准化；改版给勾选项，只改勾到的，旧版不删；带货片配音、背景乐自动让声、字幕关键词高亮、花字、品牌贴纸、价格和「点下方小黄车」按钮，字都避开平台按钮区 |
+| 9 | 质检交付 | 分辨率、码率、响度、真峰值、黑屏、闪烁（光敏）脚本查，坑清单 32 条逐条看；导出成片、审片小文件、封面；提醒你勾「AI 生成」声明、不放站外导流、歌和肖像的授权；带货片另查台词合规（绝对化用语、没出处的数字、微信号）、安全区、抖店商品主图视频规格，出封面 A/B |
 
 另有两个后台技能：`reel-install` 负责安装（顺带装好视频规格、分镜模板、风格预设、色彩表、坑清单、自带曲），`reel-update` 负责更新。出视频默认用 Grok Bot 自带的 Grok Imagine，会员额度内不另花钱；剪辑全用 ffmpeg（Grok Bot 云端自带；别处没有会先问你再装 21MB 的 imageio-ffmpeg）。
 
@@ -105,7 +106,7 @@
 ```bash
 curl -fsSL https://raw.githubusercontent.com/yunjian-ai/yunjian-zimeiti/pen-v0.3.10/members/pen/dist/install.sh | bash
 curl -fsSL https://raw.githubusercontent.com/yunjian-ai/yunjian-zimeiti/paint-v0.5.4/members/paint/dist/install.sh | bash
-curl -fsSL https://raw.githubusercontent.com/yunjian-ai/yunjian-zimeiti/reel-v0.1.5/members/reel/dist/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/yunjian-ai/yunjian-zimeiti/reel-v0.2.0/members/reel/dist/install.sh | bash
 ```
 
 **更新、修复、反馈**，都是一句话：
@@ -123,8 +124,8 @@ curl -fsSL https://raw.githubusercontent.com/yunjian-ai/yunjian-zimeiti/reel-v0.
 |---|---|---|---|
 | 万象 | 执笔 Pen | 写稿：口播、长文、仿写、多平台 | ✅ v0.3.10 |
 | 万象 | 丹青 Paint | 做图：单图直接出，系列图立母版锁人锁货，按平台规格出图；字、价格、多颜色、批量交 PhotoCraft 精确排，能出 PSD；拖着调 | ✅ v0.5.4 |
-| 万象 | 掠影 Reel | 短视频：锁人锁货锁场景，按拍子分镜，一刀一刀出静帧和视频，卡点剪辑、质检；这一版音乐 MV | ✅ v0.1.5 |
-| 万象 | 掠影 Reel | 带货片、口播片 | 规划中 |
+| 万象 | 掠影 Reel | 短视频：锁人锁货锁场景，按拍子分镜，一刀一刀出静帧和视频，卡点剪辑、质检；音乐 MV、带货片 | ✅ v0.2.0 |
+| 万象 | 掠影 Reel | 口播片 | 规划中 |
 
 起元系列（提示词、Skill、蒸馏、本体、验证、统筹）在 [yunjian-ai/yunjian](https://github.com/yunjian-ai/yunjian)。
 
@@ -162,4 +163,4 @@ curl -fsSL https://raw.githubusercontent.com/yunjian-ai/yunjian-zimeiti/reel-v0.
 
 ## English
 
-**Cloudmere (云间Bot · 万象)** is the content-creation series of Cloudmere, a set of members built for bots such as Grok Bot. Its first member, **Pen (执笔)**, turns things you actually did into short-video scripts and long-form posts that sound like you, then adapts them for each platform (Douyin, WeChat Channels, WeChat Official Accounts, X). It asks one question, then hands back a finished, laid-out piece with images. When remaking an article, it keeps the structure and swaps in fresh, verified real-world cases with source links. Every fact is traced to your own words or a cited source; a bundled checker blocks invented facts, overstated results and changed completion states. It never publishes for you. Its second member, **Paint (丹青)**, turns a one-line request and a single product or model photo into on-spec images for Douyin shops, WeChat shops, Xiaohongshu, Douyin and WeChat Official Accounts: it decides on its own whether a request is a single image or a series: a single image goes straight from a short restatement and a precise prompt to the picture, while a series gets a brief, a progress bar, and a reusable master of the product or person that you confirm before any finished image is made, so every shot stays consistent; it makes only the images you asked for, and gives you a page to drag text and logos into place. Its third member, **Reel (掠影)**, turns one model photo (plus the product and location, if you have them) and one song into a beat-synced vertical short video: it locks the look of the person, the product and the set, storyboards cut by cut on the beat for your approval, generates a still and then a short clip for every cut (keeping only the part of each clip that holds up), and cuts it on the beat with big words, lyrics, grading and loudness normalization, then checks resolution, loudness, black frames and flashing before handing it over. It quotes the video credits it will use before generating anything.
+**Cloudmere (云间Bot · 万象)** is the content-creation series of Cloudmere, a set of members built for bots such as Grok Bot. Its first member, **Pen (执笔)**, turns things you actually did into short-video scripts and long-form posts that sound like you, then adapts them for each platform (Douyin, WeChat Channels, WeChat Official Accounts, X). It asks one question, then hands back a finished, laid-out piece with images. When remaking an article, it keeps the structure and swaps in fresh, verified real-world cases with source links. Every fact is traced to your own words or a cited source; a bundled checker blocks invented facts, overstated results and changed completion states. It never publishes for you. Its second member, **Paint (丹青)**, turns a one-line request and a single product or model photo into on-spec images for Douyin shops, WeChat shops, Xiaohongshu, Douyin and WeChat Official Accounts: it decides on its own whether a request is a single image or a series: a single image goes straight from a short restatement and a precise prompt to the picture, while a series gets a brief, a progress bar, and a reusable master of the product or person that you confirm before any finished image is made, so every shot stays consistent; it makes only the images you asked for, and gives you a page to drag text and logos into place. Its third member, **Reel (掠影)**, turns one model photo (plus the product and location, if you have them) and one song into a beat-synced vertical short video: it locks the look of the person, the product and the set, storyboards cut by cut on the beat for your approval, generates a still and then a short clip for every cut (keeping only the part of each clip that holds up), and cuts it on the beat with big words, lyrics, grading and loudness normalization, then checks resolution, loudness, black frames and flashing before handing it over. It also makes shoppable clips: give it a product and its selling points and it writes several three-second hooks, storyboards one proof shot per selling point, voices the lines with a free voice, burns in highlighted captions and a buy-now button outside the app's UI zones, and checks the script for absolute claims, unsourced numbers and off-platform contact details. It quotes the video credits it will use before generating anything.

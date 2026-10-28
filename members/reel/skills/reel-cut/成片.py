@@ -7,7 +7,10 @@
   python3 成片.py 底片 <项目>              只出调好色、没字的底片 出片/底片.mp4（给 抠像.py 做遮罩用）
   python3 成片.py 成片 <项目>              出 出片/成片.mp4；已经有了就出 成片_v2.mp4、_v3……旧版不删；同名 .设置.json 记下这版用的设置
   选项：--跳过体检（镜头表体检不过也出）、--不查关口（粗剪没点头也出成片，只在主人明说时用）、--允许超窗（素材不够长就停在最后一帧）
-没有视频的刀：用 静帧/<号>.png 慢推（视频重出 3 次不行退回静帧就是这样）；素材写「—」的刀（开场纯大字）用底色。"""
+没有视频的刀：用 静帧/<号>.png 慢推（视频重出 3 次不行退回静帧就是这样）；素材写「—」的刀（开场纯大字）用底色。
+静帧的动法看镜头动作那一格：快推（钩子）、慢推（默认）、拉远、左移、右移、静止。
+带货片：剪辑.json 写 "类型": "带货"（分镜有「台词」列也自动认）——配音（配音/<号>.wav，在每刀开头 0.15 秒出声）＋背景乐（音乐/歌.*，可没有；
+  有人声时自动压低）＋字幕和花字（字幕.py 出 ASS）＋贴纸、价格、行动号召；默认明亮清新调色，不闪帧、不故障、不加颗粒。"""
 import argparse
 import json
 import re
@@ -20,6 +23,7 @@ for d in ("reel-brief", "reel-board", "reel-cut"):
     sys.path.insert(0, str(HERE.parent / d))
 import 体检  # noqa: E402
 import 媒体  # noqa: E402
+import 字幕  # noqa: E402
 import 字体  # noqa: E402
 import 调色  # noqa: E402
 import 镜头表  # noqa: E402
@@ -30,14 +34,27 @@ import 镜头表  # noqa: E402
     "歌词": True, "HUD": {"标题": "", "副标题": ""}, "跑马灯": "",
     "闪帧": True, "故障": True, "颗粒": 6, "片尾": {"字": "", "副": ""}, "淡出": 0.6,
 }
+带货默认 = {  # 淡出 0：白底画面淡到黑会被质检当成闪烁，带货片结尾停在行动号召上就好
+"调色": "明亮清新", "暗角": False, "歌词": False, "HUD": None, "闪帧": False, "故障": False, "颗粒": 0, "淡出": 0,
+          "背景乐音量": -18, "贴纸": "", "价格": "", "行动": "点下方小黄车 ›"}
 画幅表 = {"9:16": (1080, 1920), "16:9": (1920, 1080), "3:4": (1080, 1440), "4:3": (1440, 1080), "1:1": (1080, 1080)}
+
+
+def 是带货(P, 用户):
+    if 用户.get("类型"):
+        return 用户["类型"] == "带货"
+    return any(s.get("台词", "").strip() not in ("", "—", "-") for s in 镜头表.读镜头表(P / "分镜.md"))
 
 
 def 读设置(P):
     s = json.loads(json.dumps(默认))
     f = P / "剪辑.json"
-    if f.exists():
-        for k, v in json.loads(f.read_text(encoding="utf-8")).items():
+    用户 = json.loads(f.read_text(encoding="utf-8")) if f.exists() else {}
+    if (P / "分镜.md").exists() and 是带货(P, 用户):
+        s.update(json.loads(json.dumps(带货默认)))
+        s["类型"] = "带货"
+    if 用户:
+        for k, v in 用户.items():
             if isinstance(v, dict) and isinstance(s.get(k), dict):
                 s[k].update(v)
             else:
@@ -132,9 +149,21 @@ def 构图(P, 设置, 刀们, W, H, 字目录, 粗=False, 要底片=False):
         elif d["种"] == "静帧":
             入 += ["-loop", "1", "-framerate", str(fps), "-t", f"{L + 0.2:.3f}", "-i", d["文件"]]
             n = max(1, int(L * fps))
-            z = f"1.06-0.06*on/{n}" if "拉" in d["动"] else f"1+0.06*on/{n}"
+            动 = d["动"]
+            x, y = "iw/2-(iw/zoom/2)", "ih/2-(ih/zoom/2)"
+            if "快推" in 动:  # 钩子：0.35 秒快速推近再停住
+                z = f"min(1.12,1+0.12*on/{max(1, int(0.35 * fps))})"
+            elif "静止" in 动 or "不动" in 动:
+                z = "1"
+            elif "左移" in 动 or "右移" in 动:
+                z = "1.08"
+                x = f"(iw-iw/zoom)*{'(1-on/' + str(n) + ')' if '左移' in 动 else 'on/' + str(n)}"
+            elif "拉" in 动:
+                z = f"1.06-0.06*on/{n}"
+            else:
+                z = f"1+0.06*on/{n}"
             链.append(f"[{i}:v]scale={W * 2}:{H * 2}:force_original_aspect_ratio=increase,crop={W * 2}:{H * 2},"
-                     f"zoompan=z='{z}':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=1:s={W}x{H}:fps={fps},setsar=1,"
+                     f"zoompan=z='{z}':x='{x}':y='{y}':d=1:s={W}x{H}:fps={fps},setsar=1,"
                      f"trim=duration={L:.4f},setpts=PTS-STARTPTS,format=yuv420p[v{i}]")
         else:
             入 += ["-f", "lavfi", "-t", f"{L + 0.2:.3f}", "-i", f"color=c={设置['底色']}:s={W}x{H}:r={fps}"]
@@ -229,6 +258,9 @@ def 构图(P, 设置, 刀们, W, H, 字目录, 粗=False, 要底片=False):
             上层.append(f"rgbashift=rh=-{W // 70}:bh={W // 70}:enable='between(t,{x:.3f},{x + 0.2:.3f})'")
     if 设置.get("颗粒") and not 粗:
         上层.append(f"noise=alls={int(设置['颗粒'])}:allf=t")
+    if 设置.get("类型") == "带货":
+        a, 字目 = 字幕.ass(P, 设置, 总长, W, H)
+        上层.append(f"ass=filename={媒体.滤镜路径(a)}:fontsdir={媒体.滤镜路径(字目)}")
     淡 = float(设置.get("淡出") or 0)
     if 淡:
         上层.append(f"fade=t=out:st={max(0, 总长 - 淡):.3f}:d={淡}")
@@ -244,6 +276,47 @@ def 音频链(歌, 歌序号, 总长, 设置):
     量 = re.findall(r"I:\s+(-?[\d.]+) LUFS", 媒体.分析("-i", 歌, "-af", 前 + ",ebur128", "-f", "null", "-"))
     增益 = max(-20.0, min(20.0, -14.0 - float(量[-1]))) if 量 else 0.0
     return f"[{歌序号}:a]{前},volume={增益:.2f}dB,alimiter=limit=0.708:level=false,aresample=48000[声]"
+
+
+def 带货混音(P, 刀们, 总长, 设置):
+    """配音按刀放（每刀开头 0.15 秒出声）＋背景乐（有人声时自动压低）→ 出片/.混音.wav；再交给 音频链 统一响度。"""
+    入, 链, 声们 = [], [], []
+    for d in 刀们:
+        f = P / "配音" / f"{d['号']:02d}.wav"
+        if f.exists():
+            k = len(入) // 2
+            入 += ["-i", f]
+            链.append(f"[{k}:a]aresample=48000,adelay={int((d['进'] + 0.15) * 1000)}:all=1[人{k}]")
+            声们.append(f"[人{k}]")
+    乐 = None
+    for p in sorted((P / "音乐").glob("歌.*")) if (P / "音乐").is_dir() else []:
+        if p.suffix.lower() in (".wav", ".mp3", ".m4a", ".aac", ".flac"):
+            乐 = p
+            break
+    if not 声们 and not 乐:
+        sys.exit("NO_AUDIO：带货片既没有配音（配音/<号>.wav）也没有背景乐（音乐/歌.mp3）。先跑 reel-voice 配音，或放一首自带曲进 音乐/")
+    if 声们:
+        链.append("".join(声们) + f"amix=inputs={len(声们)}:normalize=0:duration=longest,apad=whole_dur={总长:.3f},atrim=0:{总长:.3f}[人声]")
+    if 乐:
+        k = len(入) // 2
+        入 += ["-i", 乐]
+        链.append(f"[{k}:a]aresample=48000,aloop=loop=-1:size=2e9,atrim=0:{总长:.3f},volume={float(设置.get('背景乐音量', -18))}dB[乐]")
+        if 声们:
+            链.append("[人声]asplit[人1][人2]")
+            链.append("[乐][人1]sidechaincompress=threshold=0.02:ratio=8:attack=20:release=400[压]")
+            链.append("[压][人2]amix=inputs=2:normalize=0[混]")
+        else:
+            链.append("[乐]anull[混]")
+    else:
+        链.append("[人声]anull[混]")
+    out = P / "出片" / ".混音.wav"
+    脚本 = out.with_name(".混音滤镜.txt")
+    脚本.write_text(";\n".join(链), encoding="utf-8")
+    try:
+        媒体.跑(*入, "-filter_complex_script", 脚本, "-map", "[混]", "-ac", "2", "-ar", "48000", "-t", f"{总长:.3f}", out)
+    finally:
+        脚本.unlink()
+    return out
 
 
 def 压峰值(out, 上限=-1.5):
@@ -328,7 +401,7 @@ def main():
             粗 = g.做 == "粗剪"
             w, h = (W // 2 // 2 * 2, H // 2 // 2 * 2) if 粗 else (W, H)
             入, 链, 末, n = 构图(P, 设置, 刀们, w, h, 字目录, 粗=粗)
-            歌 = 找歌(P, 设置)
+            歌 = 带货混音(P, 刀们, 总长, 设置) if 设置.get("类型") == "带货" else 找歌(P, 设置)
             入 += ["-i", 歌]
             链.append(音频链(歌, n, 总长, 设置))
             if 粗:
