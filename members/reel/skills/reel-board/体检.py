@@ -48,6 +48,9 @@ def 查(path, 拍子路径=None, 查素材=False):
     if not 表:
         sys.exit(f"NO_TABLE：{path} 里没找到镜头表（要有「#」和「进–出（秒）」两列）")
     拍, 落点, 拍来源 = 拍网格(path, 拍子路径)
+    清 = Path(path).parent / "口播" / "清剪.json"
+    if 清.exists():
+        return 表, *查口播(表, json.loads(清.read_text(encoding="utf-8"))), "口播片不按拍切"
     坏, 提醒 = [], []
     在拍上 = lambda t: not 拍 or any(abs(t - b) <= 0.07 for b in 拍)  # noqa: E731
     总长 = 表[-1]["出"]
@@ -129,6 +132,57 @@ def 查(path, 拍子路径=None, 查素材=False):
     return 表, 坏, 提醒, 拍来源
 
 
+def 空(x):
+    return (x or "").strip() in ("", "—", "-", "无")
+
+
+def 查口播(表, 清):
+    """口播片的剪辑方案：插入画面的规矩（增补第三节第 4 条）。连着几行同一个素材算一处插入。"""
+    坏, 提醒 = [], []
+    有画面 = 清.get("有画面", True)
+    for x, y in zip(表, 表[1:]):
+        if abs(x["出"] - y["进"]) > 0.01:
+            坏.append((y["号"], f"和上一句之间{'有缝' if y['进'] > x['出'] else '重叠'}（{x['出']} → {y['进']}）", "上一句的出点和这一句的进点写成同一个数"))
+    插, 当前 = [], None
+    for s in 表:
+        素 = s.get("素材", "").strip()
+        if "待填" in 素 or (not 有画面 and 空(素)):
+            坏.append((s["号"], "这句还没配画面" if not 有画面 else "素材还写着【待填】", "填主人的照片视频、静帧，或做一张要点卡；主人出镜就写「—」"))
+            当前 = None
+            continue
+        if 空(素):
+            当前 = None
+            continue
+        if 当前 and 当前["素材"] == 素:
+            当前["出"], 当前["号"] = s["出"], 当前["号"] + [s["号"]]
+        else:
+            当前 = {"素材": 素, "进": s["进"], "出": s["出"], "段": s.get("段", ""), "号": [s["号"]]}
+            插.append(当前)
+    if 有画面:
+        for k in 插:
+            号, 长 = "、".join(k["号"]), k["出"] - k["进"]
+            if k["进"] < 3.0:
+                坏.append((号, f"开头 3 秒内插了画面（{k['素材']}）", "钩子要主人的脸或最强的画面：这几句先不插，往后挪"))
+            if 长 < 1.5:
+                坏.append((号, f"插入 {k['素材']} 只有 {长:.1f} 秒，一闪而过", "连上下一句一起插（1.5～4 秒），或者不插"))
+            elif 长 > 4.0:
+                坏.append((号, f"插入 {k['素材']} 连着 {长:.1f} 秒，主人的脸太久不见", "拆成两处、中间回到主人出镜；一处最多 4 秒"))
+        段数 = {}
+        for k in 插:
+            段数.setdefault(k["段"], []).append("、".join(k["号"]))
+        for 段, v in 段数.items():
+            if len(v) > 2:
+                坏.append(("；".join(v), f"第 {段} 段插了 {len(v)} 处", "一段最多插 2 处，留最贴台词的两处"))
+    用 = {}
+    for k in 插:
+        用.setdefault(k["素材"], []).append("、".join(k["号"]))
+    同意 = {s.get("素材", "").strip() for s in 表 if "同意" in s.get("备注", "")}
+    for 素, v in 用.items():
+        if len(v) > 1 and 素 not in 同意:
+            提醒.append(("；".join(v), f"素材 {素} 用了 {len(v)} 次", "同一张图隔开再用观众会觉得重复，换一张或做张卡；主人同意重用就在备注写「主人同意重用」"))
+    return 坏, 提醒
+
+
 def main():
     ap = argparse.ArgumentParser(description="镜头表体检")
     ap.add_argument("分镜")
@@ -136,11 +190,12 @@ def main():
     ap.add_argument("--查素材", action="store_true")
     g = ap.parse_args()
     表, 坏, 提醒, 拍来源 = 查(g.分镜, g.拍子, g.查素材)
-    print(f"{len(表)} 刀，{表[-1]['出']:.2f} 秒；切点{拍来源}")
+    刀 = "句" if 拍来源.startswith("口播") else "刀"
+    print(f"{len(表)} {刀}，{表[-1]['出']:.2f} 秒；" + (拍来源 if 刀 == "句" else f"切点{拍来源}"))
     for 号, 问题, 改法 in 坏:
-        print(f"❌ 第 {号} 刀：{问题} → {改法}")
+        print(f"❌ 第 {号} {刀}：{问题} → {改法}")
     for 号, 问题, 改法 in 提醒:
-        print(f"⚠️ 第 {号} 刀：{问题} → {改法}")
+        print(f"⚠️ 第 {号} {刀}：{问题} → {改法}")
     print(f"\n毛病 {len(坏)} 条、提醒 {len(提醒)} 条。" + ("体检只报不改：问主人要不要照这些改，不擅自整表重写。" if 坏 else "PASS：可以给主人看分镜（关口 2）。"))
     sys.exit(1 if 坏 else 0)
 

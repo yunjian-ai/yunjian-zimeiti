@@ -10,7 +10,10 @@
 没有视频的刀：用 静帧/<号>.png 慢推（视频重出 3 次不行退回静帧就是这样）；素材写「—」的刀（开场纯大字）用底色。
 静帧的动法看镜头动作那一格：快推（钩子）、慢推（默认）、拉远、左移、右移、静止。
 带货片：剪辑.json 写 "类型": "带货"（分镜有「台词」列也自动认）——配音（配音/<号>.wav，在每刀开头 0.15 秒出声）＋背景乐（音乐/歌.*，可没有；
-  有人声时自动压低）＋字幕和花字（字幕.py 出 ASS）＋贴纸、价格、行动号召；默认明亮清新调色，不闪帧、不故障、不加颗粒。"""
+  有人声时自动压低）＋字幕和花字（字幕.py 出 ASS）＋贴纸、价格、行动号召；默认明亮清新调色，不闪帧、不故障、不加颗粒。
+口播片：有 口播/清剪.json 就自动认（剪辑.json "类型": "口播"）——底子是 口播/粗剪.*（清剪.py 出的），分镜.md 是剪辑方案（镜头表.py 口播 生成）：
+  「素材」写「—」的句子用粗剪里同一时间的主人画面，写文件的插入画面（声音不断）；字幕照台词；背景乐（音乐/歌.*，可没有）压在人声底下；
+  默认不调色、不加特效；剪辑.json 可写 "片尾引导": "评论区报个日期"。"""
 import argparse
 import json
 import re
@@ -37,6 +40,8 @@ import 镜头表  # noqa: E402
 带货默认 = {  # 淡出 0：白底画面淡到黑会被质检当成闪烁，带货片结尾停在行动号召上就好
 "调色": "明亮清新", "暗角": False, "歌词": False, "HUD": None, "闪帧": False, "故障": False, "颗粒": 0, "淡出": 0,
           "背景乐音量": -18, "贴纸": "", "价格": "", "行动": "点下方小黄车 ›"}
+口播默认 = {"调色": "无", "暗角": False, "歌词": False, "HUD": None, "闪帧": False, "故障": False, "颗粒": 0, "淡出": 0,
+          "背景乐音量": -22, "片尾引导": ""}
 画幅表 = {"9:16": (1080, 1920), "16:9": (1920, 1080), "3:4": (1080, 1440), "4:3": (1440, 1080), "1:1": (1080, 1080)}
 
 
@@ -50,7 +55,10 @@ def 读设置(P):
     s = json.loads(json.dumps(默认))
     f = P / "剪辑.json"
     用户 = json.loads(f.read_text(encoding="utf-8")) if f.exists() else {}
-    if (P / "分镜.md").exists() and 是带货(P, 用户):
+    if 用户.get("类型") == "口播" or (not 用户.get("类型") and (P / "口播" / "清剪.json").exists()):
+        s.update(json.loads(json.dumps(口播默认)))
+        s["类型"] = "口播"
+    elif (P / "分镜.md").exists() and 是带货(P, 用户):
         s.update(json.loads(json.dumps(带货默认)))
         s["类型"] = "带货"
     if 用户:
@@ -90,7 +98,66 @@ class 文字:
         return "drawtext=" + ":".join(f) + 额外
 
 
+def 口播收刀(P):
+    """剪辑方案 → 刀：连着几句同一个素材合成一刀；「—」＝从粗剪里取同一时间的主人画面。"""
+    清 = json.loads((P / "口播" / "清剪.json").read_text(encoding="utf-8"))
+    粗 = Path(清["粗剪"])
+    表 = 镜头表.读镜头表(P / "分镜.md")
+    if not 表:
+        sys.exit(f"NO_TABLE：{P / '分镜.md'} 里没有剪辑方案。先跑 reel-board/镜头表.py 口播 {P}")
+    刀们, 缺 = [], []
+    for s in 表:
+        素材 = s.get("素材", "").strip()
+        主人 = 素材 in ("", "—", "-", "无")
+        if not 主人 and 刀们 and 刀们[-1]["素材"] == 素材:
+            刀们[-1]["出"] = s["出"]
+            刀们[-1]["长"] = s["出"] - 刀们[-1]["进"]
+            continue
+        if 主人 and 刀们 and 刀们[-1]["素材"] == "主人" and abs(刀们[-1]["出"] - s["进"]) < 0.01:
+            刀们[-1]["出"] = s["出"]
+            刀们[-1]["长"] = s["出"] - 刀们[-1]["进"]
+            continue
+        写 = s.get("画面", "") + s.get("备注", "")
+        动 = next((k for k in ("快推", "拉", "左移", "右移", "静止") if k in 写), "慢推")  # 方案里写了镜头动作就照它，没写慢推
+        d = {"号": len(刀们) + 1, "进": s["进"], "出": s["出"], "长": s["出"] - s["进"], "大字": "", "动": 动, "备注": "",
+             "起": 0.0, "景别": "", "素材": "主人" if 主人 else 素材}
+        if 主人:
+            if not 清["有画面"]:
+                缺.append(f"第 {s['号']} 句（只有声音，要配画面）")
+                continue
+            d["种"], d["文件"], d["起"] = "视频", 粗, s["进"]
+        elif (P / 素材).exists():
+            d["种"], d["文件"] = ("视频" if (P / 素材).suffix.lower() in (".mp4", ".mov", ".webm", ".mkv", ".m4v") else "静帧"), P / 素材
+        else:
+            缺.append(f"第 {s['号']} 句（{素材}）")
+            continue
+        刀们.append(d)
+    if 缺:
+        sys.exit("MISSING：这些句子的画面还没有：" + "、".join(缺) + "。照剪辑方案补素材，或先改成主人出镜「—」")
+    return 刀们
+
+
+def 口播混音(P, 总长, 设置):
+    """粗剪里的人声＋背景乐（有就放，人声时自动压低）→ 出片/.混音.wav；再交给 音频链 统一响度。"""
+    粗 = json.loads((P / "口播" / "清剪.json").read_text(encoding="utf-8"))["粗剪"]
+    入, 链 = ["-i", 粗], [f"[0:a]aresample=48000,apad=whole_dur={总长:.3f},atrim=0:{总长:.3f}[人声]"]
+    乐 = next((p for p in sorted((P / "音乐").glob("歌.*")) if p.suffix.lower() in (".wav", ".mp3", ".m4a", ".aac", ".flac")), None) \
+        if (P / "音乐").is_dir() else None
+    if 乐:
+        入 += ["-i", 乐]
+        链.append(f"[1:a]aresample=48000,aloop=loop=-1:size=2e9,atrim=0:{总长:.3f},volume={float(设置.get('背景乐音量', -22))}dB[乐]")
+        链 += ["[人声]asplit[人1][人2]", "[乐][人1]sidechaincompress=threshold=0.02:ratio=8:attack=20:release=400[压]",
+              "[压][人2]amix=inputs=2:normalize=0[混]"]
+    else:
+        链.append("[人声]anull[混]")
+    out = P / "出片" / ".混音.wav"
+    媒体.跑(*入, "-filter_complex", ";".join(链), "-map", "[混]", "-ac", "2", "-ar", "48000", "-t", f"{总长:.3f}", out)
+    return out
+
+
 def 收刀(P, 设置, 允许超窗=False):
+    if 设置.get("类型") == "口播":
+        return 口播收刀(P)
     表 = 镜头表.读镜头表(P / "分镜.md")
     if not 表:
         sys.exit(f"NO_TABLE：{P / '分镜.md'} 里没有镜头表")
@@ -258,7 +325,7 @@ def 构图(P, 设置, 刀们, W, H, 字目录, 粗=False, 要底片=False):
             上层.append(f"rgbashift=rh=-{W // 70}:bh={W // 70}:enable='between(t,{x:.3f},{x + 0.2:.3f})'")
     if 设置.get("颗粒") and not 粗:
         上层.append(f"noise=alls={int(设置['颗粒'])}:allf=t")
-    if 设置.get("类型") == "带货":
+    if 设置.get("类型") in ("带货", "口播"):
         a, 字目 = 字幕.ass(P, 设置, 总长, W, H)
         上层.append(f"ass=filename={媒体.滤镜路径(a)}:fontsdir={媒体.滤镜路径(字目)}")
     淡 = float(设置.get("淡出") or 0)
@@ -401,7 +468,7 @@ def main():
             粗 = g.做 == "粗剪"
             w, h = (W // 2 // 2 * 2, H // 2 // 2 * 2) if 粗 else (W, H)
             入, 链, 末, n = 构图(P, 设置, 刀们, w, h, 字目录, 粗=粗)
-            歌 = 带货混音(P, 刀们, 总长, 设置) if 设置.get("类型") == "带货" else 找歌(P, 设置)
+            歌 = 带货混音(P, 刀们, 总长, 设置) if 设置.get("类型") == "带货" else 口播混音(P, 总长, 设置) if 设置.get("类型") == "口播" else 找歌(P, 设置)
             入 += ["-i", 歌]
             链.append(音频链(歌, n, 总长, 设置))
             if 粗:
@@ -429,9 +496,10 @@ def main():
                 print("给主人看：顺序、节奏、大字对不对；点头后跑 进度.py 关口 <项目> 粗剪 过，再出成片")
             else:
                 Path(str(out)[:-4] + ".设置.json").write_text(json.dumps(设置, ensure_ascii=False, indent=1), encoding="utf-8")
-                print(f"OK {out}（{W}×{H}，{总长:.2f} 秒）" + ("；大字压在人身后" if (出片 / "遮罩.mp4").exists() and 设置["大字"].get("压人身后") else
+                print(f"OK {out}（{W}×{H}，{总长:.2f} 秒）" + ("" if 设置.get("类型") == "口播" else "；大字压在人身后" if (出片 / "遮罩.mp4").exists() and 设置["大字"].get("压人身后") else
                                                      "；没有遮罩，大字在人前面"))
-                print(f"下一步：python3 {HERE.parent / 'reel-check' / '质检.py'} 查 {out}")
+                print(f"下一步：python3 {HERE.parent / 'reel-check' / '质检.py'} 查 {out}"
+                      + (f"；再 python3 {HERE.parent / 'reel-check' / '质检.py'} 口播 {out} --稿 {P / '稿子.md'}" if 设置.get("类型") == "口播" else ""))
     finally:
         shutil.rmtree(字目录, ignore_errors=True)
 

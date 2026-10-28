@@ -73,7 +73,7 @@ if [ "$MODE" = "--check" ]; then
   [ -f "$H/库/视频规格.json" ] && [ -d "$H/库/音乐" ] && echo "LIBRARY OK $H/库" || echo "LIBRARY MISSING $H/库"
 elif [ -d "$L" ]; then
   rm -rf "$H/库.new" && mkdir -p "$H/库.new"
-  for i in README.md 视频规格.md 视频规格.json 分镜模板.md 风格预设.md 坑清单.md 真人姿势.md 色彩表 音乐; do [ -e "$L/$i" ] && cp -R "$L/$i" "$H/库.new/"; done
+  for i in README.md 视频规格.md 视频规格.json 分镜模板.md 风格预设.md 坑清单.md 真人姿势.md 口播剪辑卡.md 色彩表 音乐; do [ -e "$L/$i" ] && cp -R "$L/$i" "$H/库.new/"; done
   rm -rf "$H/库" && mv "$H/库.new" "$H/库"
   mkdir -p "$H/我的库" "$H/项目"
   echo "LIBRARY $H/库（我的库：$H/我的库，没动）"

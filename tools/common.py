@@ -23,7 +23,7 @@ MEMBER_ITEMS = ["profile.json", "memory.md", "VERSION", "install.sh", "skills", 
 MEMBER_EXTRAS = ["库/README.md", "库/schema", "库/平台", "库/手法", "库/表达", "库/爆款", "库/样卡",
                  "库/check_library.py", "库/test_check_library.py", "库/建目录.py", "库/test_建目录.py", "库/雷达.py", "库/test_雷达.py",
                  "库/目录.md", "库/招式", "库/索引.json", "库/统计.md", "抓取", "库/平台规格.md", "库/规格表.json", "库/场景", "库/品牌元素", "库/参考",
-                 "库/视频规格.md", "库/视频规格.json", "库/分镜模板.md", "库/风格预设.md", "库/坑清单.md", "库/真人姿势.md",
+                 "库/视频规格.md", "库/视频规格.json", "库/分镜模板.md", "库/风格预设.md", "库/坑清单.md", "库/真人姿势.md", "库/口播剪辑卡.md",
                  "库/色彩表", "库/音乐"]
 MEMBER_TEST_ITEMS = ["fixtures", "expected", "run_tests.py", "材料"]
 

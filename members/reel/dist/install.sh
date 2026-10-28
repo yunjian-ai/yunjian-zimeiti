@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # 掠影安装脚本（tools/pack.py 填好版本后生成 dist/install.sh）。不需要 gh，不需要登录。
-# 装、更新、修复：curl -fsSL https://raw.githubusercontent.com/yunjian-ai/yunjian-zimeiti/reel-v0.2.0/members/reel/dist/install.sh | bash
+# 装、更新、修复：curl -fsSL https://raw.githubusercontent.com/yunjian-ai/yunjian-zimeiti/reel-v0.3.0/members/reel/dist/install.sh | bash
 # 只体检、不改：  在 bash 后面加 -s -- --check
 # 当 Skill 用：   在 bash 前面加 REEL_SKILL_DIR=技能目录（比如 ~/.claude/skills）
 export GIT_TERMINAL_PROMPT=0
 MODE=${1:-install}
-T=reel-v0.2.0; R=https://github.com/yunjian-ai/yunjian-zimeiti
+T=reel-v0.3.0; R=https://github.com/yunjian-ai/yunjian-zimeiti
 RAW=https://raw.githubusercontent.com/yunjian-ai/yunjian-zimeiti/$T/members/reel/dist/recipe.json
 W=/tmp/yunjian-$T; RJ=/tmp/recipe-$T.json; rm -rf "${W:?}"
 git clone -q --depth 1 --branch "$T" "$R" "$W" 2>/dev/null && cp "$W/members/reel/dist/recipe.json" "$RJ" \
@@ -18,7 +18,7 @@ fi
 python3 - "$RJ" "$D" "$MODE" <<'PY'
 import hashlib, json, os, sys, time
 r = json.load(open(sys.argv[1], encoding="utf-8")); d, mode = sys.argv[2], sys.argv[3]
-assert r["version"] == "0.2.0", "版本不对"
+assert r["version"] == "0.3.0", "版本不对"
 ok = [s for s in r["skills"] if s["name"].startswith("reel-") and len(s["content"].encode()) <= 98304]
 assert len(ok) == len(r["skills"]), "技能校验没过"
 if not d:
@@ -73,7 +73,7 @@ if [ "$MODE" = "--check" ]; then
   [ -f "$H/库/视频规格.json" ] && [ -d "$H/库/音乐" ] && echo "LIBRARY OK $H/库" || echo "LIBRARY MISSING $H/库"
 elif [ -d "$L" ]; then
   rm -rf "$H/库.new" && mkdir -p "$H/库.new"
-  for i in README.md 视频规格.md 视频规格.json 分镜模板.md 风格预设.md 坑清单.md 真人姿势.md 色彩表 音乐; do [ -e "$L/$i" ] && cp -R "$L/$i" "$H/库.new/"; done
+  for i in README.md 视频规格.md 视频规格.json 分镜模板.md 风格预设.md 坑清单.md 真人姿势.md 口播剪辑卡.md 色彩表 音乐; do [ -e "$L/$i" ] && cp -R "$L/$i" "$H/库.new/"; done
   rm -rf "$H/库" && mv "$H/库.new" "$H/库"
   mkdir -p "$H/我的库" "$H/项目"
   echo "LIBRARY $H/库（我的库：$H/我的库，没动）"

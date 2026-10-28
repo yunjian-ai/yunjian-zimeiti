@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from common import LIM, hash_hits, is_material, is_unpublished, norm, parse_frontmatter, public_picks  # noqa: E402
+from common import LIM, MEMBER_EXTRAS, hash_hits, is_material, is_unpublished, norm, parse_frontmatter, public_picks  # noqa: E402
 
 REQUIRED = ("install", "update", "getting-started")
 LESSON = re.compile(r"第[一二三四五六七八九十0-9]+课")
@@ -179,6 +179,13 @@ def check_member(m, root, errors):
         for ref in set(re.findall(r"`([^`/\s]+\.md)`", text)):
             if ref not in files:
                 errors.append(f"[xref] {src}: 引用了不存在的文件 {ref}")
+        # 装好的公共库里的文件：要在发布白名单里（不然公开仓库没有）、也要写在安装脚本里（不然装不到主人那）——v0.3 口播剪辑卡漏过一次
+        inst = (m / "install.sh").read_text(encoding="utf-8") if (m / "install.sh").exists() else ""
+        for ref in set(re.findall(r"~/\.yunjian/" + re.escape(name) + r"/库/([^`/\s）)，。]+)", text)):
+            if not (m / "库" / ref).exists():
+                errors.append(f"[xref] {src}: 引用了库里不存在的 {ref}")
+            elif f"库/{ref}" not in MEMBER_EXTRAS or (inst and "库" in inst and ref not in inst):
+                errors.append(f"[library] {src}: 引用的 库/{ref} 没登记全（tools/common.py 的 MEMBER_EXTRAS、members/{name}/install.sh 的拷贝清单都要有）")
     return total
 
 

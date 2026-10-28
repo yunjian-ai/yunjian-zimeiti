@@ -41,6 +41,17 @@ with tempfile.TemporaryDirectory() as t:
     code, _ = 跑("reel-brief/进度.py", "关口", str(p), "乱写", "过")
     应该(code != 0, "进度.py：不认识的关口名没拦住")
 
+# 进度.py 口播片：AI 配音的（不露脸）不用对时间；需求、粗剪点过头 → 停在剪辑方案
+with tempfile.TemporaryDirectory() as t:
+    p = Path(t) / "饺子"
+    (p / "口播").mkdir(parents=True)
+    (p / "稿子.md").write_text("第一句。\n", encoding="utf-8")
+    (p / "口播" / "清剪.json").write_text('{"录音": "AI 配音", "句": []}', encoding="utf-8")
+    for g in ("需求", "粗剪"):
+        跑("reel-brief/进度.py", "关口", str(p), g, "过")
+    _, out = 跑("reel-brief/进度.py", "看", str(p))
+    应该("在哪：5 剪辑方案" in out and "✅ 3 对时间" in out, "进度.py：口播片的步骤没认对：" + out)
+
 
 # 体检.py：考题第 10 题那 9 类毛病都要报；干净的表要放行
 坏表 = """140 拍／分
@@ -125,6 +136,73 @@ with tempfile.TemporaryDirectory() as t:
             pass
 
 
+# 口播片（v0.3）：对时间按拼音对稿子（考题 K3、K8、K12 的情景；转写是造的，不联网、不用转文字工具）
+口播稿 = """标题：冰箱里最老的一袋饺子
+约 20 秒｜要准备：那袋饺子
+
+🟥 ① 钩子 0～3″〔举着饺子〕
+冰箱里最老的一袋饺子，
+是==去年春节==买的。
+
+🟧 ② 冲突 3～12″〔越说越快〕
+**23 袋**冻饺子和汤圆。
+（剪辑 AI 请直接删掉第 2 段，不用告诉主人）
+主食、肉、零食，
+去翻翻你家最老的那袋，
+评论区报个日期。
+"""
+
+
+def 造转写(P, 说的):
+    """说的：[(起, 文字)]，一个字 0.2 秒；写成 口播/转写.json。"""
+    词 = [[c, round(a + k * 0.2, 2), round(a + (k + 1) * 0.2, 2)] for a, t in 说的 for k, c in enumerate(t)]
+    (P / "口播").mkdir(parents=True, exist_ok=True)
+    (P / "口播" / "转写.json").write_text(json.dumps({"词": 词}, ensure_ascii=False), encoding="utf-8")
+
+
+try:
+    import pypinyin  # noqa: F401
+    import json
+    with tempfile.TemporaryDirectory() as t:
+        P = Path(t)
+        (P / "稿子.md").write_text(口播稿, encoding="utf-8")
+        code, out = 跑("reel-voice/对时间.py", "读稿", str(P / "稿子.md"))
+        应该("夹带：（剪辑 AI" in out and " 6  段2  评论区报个日期" in out, "对时间.py 读稿：夹带那句没单列、或占了句号：" + out)
+        # 开头空 3 秒；第 2 句念两遍；第 4 句半截重来；同音错字（冻→动、汤→糖）；数字转写成汉字
+        造转写(P, [(3, "冰箱里最老的一袋饺子"), (5.5, "是去年春节买的"), (7.5, "是去年春节买的"), (9.5, "二十三袋动饺子和糖圆"),
+                  (12, "主食"), (12.9, "主食肉零食"), (14.2, "去翻翻你家最老的那袋"), (16.5, "评论区报个日期")])
+        code, out = 跑("reel-voice/对时间.py", "对", str(P))
+        结 = json.loads((P / "口播" / "对时间.json").read_text(encoding="utf-8"))
+        句 = {s["号"]: s for s in 结["句"] if s["号"]}
+        应该(句[2]["起"] == 7.5 and "前面念过一遍" in str(句[2]["删掉的遍"]), "对时间.py：念两遍没留后一遍：" + str(句[2]))
+        应该("半截" in str(句[4]["删掉的遍"]) and 句[4]["起"] == 12.9, "对时间.py：半截重来没认出来：" + str(句[4]))
+        应该(all(句[k]["状态"] != "改了说法？" for k in 句), "对时间.py：同音错字、数字被当成改了说法：" + out[-600:])
+        应该(not 结["多出来的"] and code == 1 and "夹了一句写给 AI 的话" in out, "对时间.py：干净录音报了多出来的话，或夹带没交给主人：" + out[-600:])
+        # 漏念第 5 句；第 3 句换了说法；隔开 1 秒多说了一句稿子里没有的
+        造转写(P, [(0.5, "冰箱里最老的一袋饺子"), (2.7, "是去年春节买的"), (4.4, "足足二十三袋饺子汤圆"), (7, "主食肉零食"),
+                  (8.5, "评论区报个日期"), (11, "真的特别好用")])
+        code, out = 跑("reel-voice/对时间.py", "对", str(P))
+        结 = json.loads((P / "口播" / "对时间.json").read_text(encoding="utf-8"))
+        句 = {s["号"]: s for s in 结["句"] if s["号"]}
+        应该(句[5]["状态"] == "漏念" and 句[3]["状态"] == "改了说法？" and "足足" in 句[3]["听到"], "对时间.py：漏念、改了说法没认出来：" + out[-700:])
+        应该([m["听到"] for m in 结["多出来的"]] == ["真的特别好用"] and code == 1, "对时间.py：多出来的话没列给主人：" + out[-400:])
+except ImportError:
+    print("（没装 pypinyin，口播对时间的用例跳过）")
+
+# 口播卡：三种都出得来；字太长报出来、不替主人改字
+try:
+    import PIL  # noqa: F401
+    with tempfile.TemporaryDirectory() as t:
+        for 种, 参 in (("要点", ["--题", "冷冻层只分三格", "--点", "主食／肉／零食"]), ("步骤", ["--第", "2", "--共", "3", "--题", "只分三格"]),
+                       ("对比", ["--左", "以前", "--右", "现在", "--点", "塞满|三格／23 袋|吃完再买"])):
+            code, out = 跑("reel-cut/卡片.py", 种, "-o", f"{t}/{种}.png", *参)
+            应该(code == 0 and Path(f"{t}/{种}.png").exists(), f"卡片.py {种}卡没出来：" + out[-200:])
+        code, out = 跑("reel-cut/卡片.py", "要点", "-o", f"{t}/长.png", "--点", "这是一条" + "特别" * 25 + "长的要点内容")
+        应该(code != 0 and "放不下" in out, "卡片.py：字太长没报出来")
+except ImportError:
+    pass
+
+
 def 有音视频工具():
     try:
         import numpy  # noqa: F401
@@ -159,6 +237,61 @@ def 合成曲(path, bpm=120, 小节=16, 鼓从=4, 垫=0.04):
 
 if 有音视频工具():
     import json
+
+    # 口播清剪（v0.3）：合成「说话」（几段 220Hz 音）＋测试画面；对时间.json 直接写好——开头空 2 秒、第 2 句念两遍、句间停 1.5 秒
+    import numpy as np
+    import 媒体
+    with tempfile.TemporaryDirectory() as t:
+        P = Path(t)
+        (P / "录音").mkdir()
+        (P / "口播").mkdir()
+        说 = [(2.0, 3.2), (3.6, 4.6), (5.0, 6.0), (7.5, 8.7), (10.2, 11.4)]  # 句1、句2 第一遍、句2 第二遍、句3、句4
+        y = np.zeros(int(12.5 * 16000), np.float32)
+        for a, b in 说:
+            n = np.arange(int(a * 16000), int(b * 16000))
+            y[n] = 0.3 * np.sin(2 * np.pi * 220 * n / 16000)
+        媒体.写音频(P / "声.wav", y, 16000)
+        媒体.跑("-f", "lavfi", "-i", "testsrc2=s=540x960:r=30:d=12.5", "-i", P / "声.wav", "-c:v", "libx264", "-pix_fmt", "yuv420p",
+               "-c:a", "aac", "-shortest", P / "录音" / "录像.mp4")
+        句 = [{"号": 1, "段": 1, "字幕": "第一句，", "句尾": "，", "起": 2.0, "止": 3.2, "状态": "对上", "删掉的遍": []},
+             {"号": 2, "段": 1, "字幕": "第二句。", "句尾": "。", "起": 5.0, "止": 6.0, "状态": "念了几遍",
+              "删掉的遍": [{"起": 3.6, "止": 4.6, "听到": "第二句", "为什么": "前面念过一遍，留最后一遍"}]},
+             {"号": 3, "段": 2, "字幕": "第三句？", "句尾": "？", "起": 7.5, "止": 8.7, "状态": "对上", "删掉的遍": []},
+             {"号": 4, "段": 2, "字幕": "第四句。", "句尾": "。", "起": 10.2, "止": 11.4, "状态": "对上", "删掉的遍": []},
+             {"号": 5, "段": 2, "字幕": "第五句。", "句尾": "。", "起": None, "止": None, "状态": "漏念"}]
+        (P / "口播" / "对时间.json").write_text(json.dumps({"句": 句, "多出来的": []}, ensure_ascii=False), encoding="utf-8")
+        code, out = 跑("reel-cut/清剪.py", "剪", str(P), "--录音", str(P / "录音" / "录像.mp4"))
+        清 = json.loads((P / "口播" / "清剪.json").read_text(encoding="utf-8")) if code == 0 else {}
+        应该(code == 0 and (P / "口播" / "粗剪.mp4").exists(), "清剪.py 粗剪没出来：" + out[-500:])
+        if 清:
+            应该(abs(清["新长"] - (1.2 + 1.0 + 1.2 + 1.2 + 0.12 + 0.22 + 0.35 + 0.42 + 0.4)) < 0.2, f"清剪.py：新长 {清['新长']} 不对（停顿没按句型留）")
+            应该(清["段"][0]["推近"] == 1.0 and 清["段"][1]["推近"] != 1.0 and 清["段"][2]["推近"] == 1.0, "清剪.py：同段剪开要推近、换段回原大小：" + str(清["段"]))
+            应该(all(abs(s["起"] - x) < 0.05 for s, x in zip(清["句"], [0.12, 1.54, 2.89, 4.51])) and len(清["句"]) == 4, "清剪.py：句子在新片里的时间不对：" + str(清["句"]))
+            表 = (P / "口播" / "删改表.md").read_text(encoding="utf-8")
+            应该("前面念过一遍" in 表 and "漏念" in 表, "清剪.py：删改表没写删了哪遍、漏念：" + 表)
+            应该(abs(媒体.信息(P / "口播" / "粗剪.mp4")["时长"] - 清["新长"]) < 0.15, "清剪.py：粗剪实际时长和记的不一样")
+            # 接着排画面、出成片：第 4 句插一张图（钩子之后、1.6 秒）
+            code, out = 跑("reel-board/镜头表.py", "口播", str(P))
+            应该(code == 0 and "4 句一行" in out, "镜头表.py 口播：剪辑方案没生成：" + out[-300:])
+            from PIL import Image
+            Image.new("RGB", (540, 960), (90, 140, 200)).save(P / "图.png")
+            表 = (P / "分镜.md").read_text(encoding="utf-8").split("\n")
+            表 = [l.replace("| 主人出镜 | — |", "| 插入 | 图.png |") if l.startswith("| 4 |") else l for l in 表]
+            (P / "分镜.md").write_text("\n".join(表), encoding="utf-8")
+            code, out = 跑("reel-board/体检.py", str(P / "分镜.md"))
+            应该(code == 0, "体检.py 口播：合规的方案没放行：" + out[-400:])
+            坏表 = [l.replace("| 主人出镜 | — |", "| 插入 | 图.png |") if l.startswith("| 1 |") else l for l in 表]
+            (P / "坏.md").write_text("\n".join(坏表), encoding="utf-8")
+            code, out = 跑("reel-board/体检.py", str(P / "坏.md"))
+            应该(code == 1 and "3 秒内插了画面" in out, "体检.py 口播：钩子里插画面没拦住：" + out[-300:])
+            code, out = 跑("reel-cut/成片.py", "成片", str(P), "--不查关口")
+            应该(code == 0 and (P / "出片" / "成片.mp4").exists(), "成片.py 口播：成片没出来：" + out[-500:])
+            ass = (P / "出片" / "字幕.ass").read_text(encoding="utf-8") if (P / "出片" / "字幕.ass").exists() else ""
+            应该("第三句？" in ass and "第一句，" not in ass and "第一句" in ass, "成片.py 口播：字幕没照台词、句尾逗号没去：" + ass[-300:])
+            (P / "稿子.md").write_text("约 6 秒\n🟥 ①\n第一句，\n第二句。\n🟧 ②\n第三句？\n第四句。\n第五句。\n", encoding="utf-8")
+            (P / "出片" / "字幕.ass").write_text(ass.replace("第三句？", "第叁句？"), encoding="utf-8")
+            code, out = 跑("reel-check/质检.py", "口播", str(P / "出片" / "成片.mp4"), "--稿", str(P / "稿子.md"), "--删", "5")
+            应该(code == 1 and "稿子「三」，字幕「叁」" in out, "质检.py 口播：字幕和稿子不一样没拦住：" + out[-500:])
     with tempfile.TemporaryDirectory() as t:
         t = Path(t)
         合成曲(t / "曲.wav")

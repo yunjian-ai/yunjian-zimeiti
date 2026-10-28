@@ -6,6 +6,8 @@
   python3 配音.py 试听 <项目> [--声音 X] [--语速 +10%] [--句 2]   只合成前几句，存 配音/试听_<号>.wav，先给主人听
   python3 配音.py 合成 <项目> [--声音 X] [--语速 +10%] [--目标 15]  整条合成；主人自己录的（配音/<号>.wav 已有、且不是我们合成的）不覆盖
   python3 配音.py 排时间 <项目> [--留白 0.25] [--最短 1.2]          按真实配音时长改写镜头表的进–出点（只改那一格）
+  python3 配音.py 口播 <项目> [--声音 X] [--语速 +10%] [--试听]     不露脸的口播片：照 <项目>/稿子.md 一句一句合成，按句型留停顿拼成
+                                                                    口播/粗剪.wav，并写好 口播/清剪.json（不用转文字），接着走 镜头表.py 口播；--试听 只出前 2 句
 声音、语速不写就读项目 声音.json（店里固定的声音，reel-voice 第 4 步存的），再没有用 zh-CN-XiaoxiaoNeural、+10%。"""
 import argparse
 import json
@@ -160,9 +162,50 @@ def 排时间(P, 留白, 最短):
         print(f"  第 {号} 刀 {a:.2f}–{b:.2f}")
 
 
+def 口播(P, g):
+    """不露脸口播：稿子逐句合成 → 按句型停顿拼起来 → 口播/粗剪.wav ＋ 清剪.json（和清剪.py 出的同一个样子）。"""
+    sys.path.insert(0, str(HERE.parent / "reel-cut"))
+    import 对时间
+    import 清剪
+    import numpy as np
+    稿 = P / "稿子.md"
+    if not 稿.exists():
+        sys.exit(f"NO_SCRIPT：先把口播稿原样存成 {稿}")
+    句们 = [s for s in 对时间.读稿(稿) if not s.get("夹带")]
+    py = 要python()
+    声音, 语速 = 声音设置(P, g)
+    d = P / "口播" / "配音"
+    d.mkdir(parents=True, exist_ok=True)
+    if g.试听:
+        for s in 句们[:2]:
+            合成一句(py, s["字幕"], 声音, 语速, d / f"试听_{s['号']:02d}.wav")
+        print(f"OK 试听 2 句在 {d}（试听_*.wav），声音 {声音}、语速 {语速}。给主人听，定了再整条合成")
+        return
+    SR, 段, 句时, t = 48000, [], [], 0.12
+    段.append(np.zeros(int(0.12 * SR), np.float32))
+    for i, s in enumerate(句们):
+        f = d / f"{s['号']:02d}.wav"
+        合成一句(py, s["字幕"], 声音, 语速, f)
+        y = 媒体.解码音频(f, sr=SR)
+        句时.append({**{k: s[k] for k in ("号", "原文", "字幕", "句尾", "段", "提示")}, "多出来的": False,
+                    "起": round(t, 3), "止": round(t + len(y) / SR, 3)})
+        停 = 0.4 if i == len(句们) - 1 else 清剪.停顿表.get(s["句尾"], 0.22)
+        段 += [y, np.zeros(int(停 * SR), np.float32)]
+        t += len(y) / SR + 停
+    out = P / "口播" / "粗剪.wav"
+    媒体.写音频(out, np.concatenate(段), SR)
+    长 = round(媒体.信息(out)["时长"], 3)
+    (P / "口播" / "清剪.json").write_text(json.dumps({"录音": "AI 配音", "粗剪": str(out), "有画面": False, "原长": 长, "新长": 长,
+                                                   "段": [{"原起": 0, "原止": 长, "新起": 0, "新止": 长, "段": 1, "推近": 1.0}],
+                                                   "句": 句时, "声音": 声音, "语速": 语速}, ensure_ascii=False, indent=1), encoding="utf-8")
+    print(f"OK {len(句们)} 句、{长:.1f} 秒（{声音}、{语速}）→ {out}")
+    print(f"下一步：python3 {HERE.parent / 'reel-board' / '镜头表.py'} 口播 {P}，每句配画面（主人照片 → 丹青母版静帧 → 卡片）")
+
+
 def main():
     ap = argparse.ArgumentParser(description="配音")
-    ap.add_argument("做", choices=["装", "音色", "试听", "合成", "排时间"])
+    ap.add_argument("做", choices=["装", "音色", "试听", "合成", "排时间", "口播"])
+    ap.add_argument("--试听", action="store_true")
     ap.add_argument("项目", nargs="?")
     ap.add_argument("--声音")
     ap.add_argument("--语速")
@@ -178,7 +221,9 @@ def main():
     if not g.项目:
         sys.exit("要给项目文件夹")
     P = Path(g.项目).resolve()
-    if g.做 == "试听":
+    if g.做 == "口播":
+        口播(P, g)
+    elif g.做 == "试听":
         合成(P, g, 只试=g.句)
     elif g.做 == "合成":
         合成(P, g)

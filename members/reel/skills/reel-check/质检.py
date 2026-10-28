@@ -9,6 +9,10 @@
   python3 质检.py 安全区 <成片.mp4> <出.jpg> [--秒 3,8,12]   在这几秒的画面上画出按钮区（上 10%、下 20%、右 15%），人眼看字和货有没有压进去
   python3 质检.py 封面AB <出文件夹> --图 a.png b.png --题 "标题一|标题二|标题三" [--比例 3:4]
       带货片封面 A/B：干净底图（静帧，不要用带字幕的成片帧）× 几个标题 × 4 种版式轮换，出 封面_A.jpg… 和对比图 封面对比.jpg
+  python3 质检.py 口播 <成片.mp4> --稿 稿子.md [--字幕 出片/字幕.ass] [--出 出片/口播质检]
+      口播片加查：成片的声音再转一遍文字对稿子——每句出现且只出现一次（主人说删的写进 --删 3,5）、漏了哪句；最长停顿 ≤0.5 秒；
+      时长和稿子「约 N 秒」差 ≤15%；字幕：有 ASS 就逐字比稿子（标点除外），没有（字烧在画面上、别人剪的）就每句抽一帧、
+      下面标上稿子原文拼成「字幕对照.jpg」，逐格看字对不对。有问题退出码 1。要先装转文字（reel-voice/对时间.py 装）。
 规格读 库/视频规格.json（装好在 ~/.yunjian/reel/库/）。"""
 import argparse
 import json
@@ -170,6 +174,8 @@ def 联系表(g):
 def 审片(g):
     d = 媒体.信息(g.视频)
     kbps = max(300, int(g.mb * 8000 * 0.9 / max(d["时长"], 0.1)) - 128)
+    if d.get("码率kbps"):
+        kbps = min(kbps, max(300, int(d["码率kbps"] * 0.6)))  # 审片版是小样，不该比原片还大
     竖 = d["高"] > d["宽"]
     媒体.跑("-i", g.视频, "-vf", "scale=540:960" if 竖 else "scale=960:540", "-c:v", "libx264", "-preset", "medium",
            "-b:v", f"{min(kbps, 4000)}k", "-maxrate", f"{min(kbps, 4000) * 2}k", "-bufsize", f"{min(kbps, 4000) * 2}k",
@@ -244,6 +250,141 @@ def 封面AB(g):
     return 0
 
 
+def 净(t):
+    return re.sub(r"[\s，。？！、；：,.?!;:…—“”\"'（）()《》*=]", "", t)
+
+
+def 读ass(path):
+    """→ [(起, 止, 文字)]：只要底部字幕（Sub 开头的样式），去掉 {…} 特效。"""
+    out = []
+    for l in Path(path).read_text(encoding="utf-8").splitlines():
+        m = re.match(r"Dialogue:\s*\d+,([\d:.]+),([\d:.]+),(Sub\w*),[^,]*,\d+,\d+,\d+,[^,]*,(.*)$", l)
+        if m:
+            秒 = lambda x: sum(float(a) * b for a, b in zip(x.split(":"), (3600, 60, 1)))  # noqa: E731
+            out.append((秒(m[1]), 秒(m[2]), re.sub(r"\{[^}]*\}", "", m[4])))
+    return out
+
+
+def 口播(g):
+    import shutil
+    import tempfile
+    对 = HERE.parent / "reel-voice" / "对时间.py"
+    sys.path.insert(0, str(对.parent))
+    import 对时间
+    稿 = Path(g.稿)
+    句们 = [s for s in 对时间.读稿(稿) if not s.get("夹带")]
+    删 = {int(x) for x in re.split(r"[,，]", g.删 or "") if x.strip().isdigit()}
+    d = 媒体.信息(g.视频)
+    出 = Path(g.出 or Path(g.视频).with_name("口播质检"))
+    出.mkdir(parents=True, exist_ok=True)
+    问题, 好, 提醒 = [], [], []
+    # 1. 时长
+    m = re.search(r"约\s*(\d+(?:\.\d+)?)\s*秒", 稿.read_text(encoding="utf-8"))
+    if m:
+        预, 实 = float(m[1]), d["时长"]
+        说 = f"时长 {实:.1f} 秒，稿子预计约 {预:g} 秒（差 {abs(实 - 预) / 预:.0%}，上限 15%）"
+        if 实 > 预 * 1.15:
+            问题.append(说 + "→ 先删停顿，再问主人删哪句；加速最多 1.1 倍")
+        elif 实 < 预 * 0.85:
+            提醒.append(说 + "：短了——句子都在的话多半是语速快，告诉主人一声；漏了句看下面")
+        else:
+            好.append(说)
+    # 2. 停顿
+    err = 媒体.分析("-i", g.视频, "-af", "silencedetect=n=-38dB:d=0.5", "-f", "null", "-")
+    停 = [(float(a), float(b)) for a, b in zip(re.findall(r"silence_start: ([\d.]+)", err), re.findall(r"silence_end: ([\d.]+)", err))]
+    停 = [(a, b) for a, b in 停 if a > 0.05 and b < d["时长"] - 0.6]
+    for a, b in 停:
+        问题.append(f"{a:.2f}–{b:.2f} 秒停了 {b - a:.1f} 秒（上限 0.5）→ 回 清剪 压短这处停顿")
+    if not 停:
+        好.append("没有超过 0.5 秒的停顿")
+    # 3. 每句一次（成片声音再转一遍）
+    tmp = Path(tempfile.mkdtemp())
+    try:
+        shutil.copy(稿, tmp / "稿子.md")
+        r = subprocess.run([sys.executable, str(对), "转", str(tmp), "--录音", str(Path(g.视频).resolve())], capture_output=True, text=True)
+        if r.returncode:
+            问题.append("没转成文字，「每句一次」没查：" + (r.stdout + r.stderr).strip().splitlines()[-1])
+            结果 = None
+        else:
+            subprocess.run([sys.executable, str(对), "对", str(tmp)], capture_output=True, text=True)
+            结果 = json.loads((tmp / "口播" / "对时间.json").read_text(encoding="utf-8"))
+    finally:
+        pass
+    时 = {}
+    if 结果:
+        for s in 结果["句"]:
+            if s.get("夹带"):
+                continue
+            if s["号"] in 删:
+                if s["状态"] != "漏念":
+                    问题.append(f"第 {s['号']} 句「{s['字幕']}」主人说删，片子里还有（{s['起']:.2f} 秒）")
+                continue
+            if s["状态"] == "漏念":
+                问题.append(f"第 {s['号']} 句「{s['字幕']}」片子里没有（漏了）→ 回粗剪找这句，录音里也没有就问主人补录还是删")
+            elif s["删掉的遍"]:
+                问题.append(f"第 {s['号']} 句「{s['字幕']}」出现了不止一次（" + "；".join(f"{x['起']:.2f} 秒" for x in s["删掉的遍"]) + "）→ 回清剪只留一遍")
+            elif s["状态"] == "改了说法？":
+                问题.append(f"第 {s['号']} 句听着和稿子不一样：听到「{s['听到']}」（可能是同音错字，也可能主人改了说法）→ 人耳核一下")
+            if s.get("起") is not None:
+                时[s["号"]] = (s["起"], s["止"])
+        for x in 结果.get("多出来的", []):
+            问题.append(f"{x['起']:.2f}–{x['止']:.2f} 秒有稿子里没有的话「{x['听到']}」→ 主人说留就留，没说过就问")
+        if not any("片子里没有" in x or "不止一次" in x for x in 问题):
+            好.append(f"稿子 {len(句们) - len(删)} 句在片子里都出现、各一次")
+    shutil.rmtree(tmp, ignore_errors=True)
+    # 4. 字幕
+    ass = Path(g.字幕) if g.字幕 else Path(g.视频).with_name("字幕.ass")
+    if ass.exists():
+        字 = 读ass(ass)
+        稿字 = "".join(净(s["字幕"]) for s in 句们 if s["号"] not in 删)
+        幕字, 位 = "", []
+        for a, b, t in 字:
+            for c in 净(t):
+                幕字 += c
+                位.append(a)
+        sm = __import__("difflib").SequenceMatcher(None, 稿字, 幕字, autojunk=False)
+        错 = [(op, 稿字[i1:i2], 幕字[j1:j2], 位[min(j1, len(位) - 1)] if 位 else 0) for op, i1, i2, j1, j2 in sm.get_opcodes() if op != "equal"]
+        for op, a, b, t in 错:
+            问题.append(f"字幕 {t:.2f} 秒附近：稿子「{a or '（没有）'}」，字幕「{b or '（没有）'}」→ 字幕照稿子改（主人临场改了说法的照他真说的）")
+        if not 错:
+            好.append(f"字幕和稿子一字不差（{len(字)} 条，标点不算）")
+    else:
+        try:
+            from PIL import Image, ImageDraw, ImageFont
+            格, 号们 = [], [s for s in 句们 if s["号"] in 时]
+            for s in 号们:
+                a, b = 时[s["号"]]
+                f = 出 / f"_{s['号']:02d}.jpg"
+                媒体.跑("-ss", f"{(a + b) / 2:.2f}", "-i", g.视频, "-frames:v", "1", "-vf", "scale=360:-2", f)
+                格.append((s, Image.open(f).convert("RGB")))
+                f.unlink()
+            if 格:
+                w, h = 格[0][1].size
+                列 = 5
+                图 = Image.new("RGB", (列 * w, math.ceil(len(格) / 列) * (h + 90)), (16, 16, 16))
+                字体 = ImageFont.truetype(媒体.字体(), 22)
+                画 = ImageDraw.Draw(图)
+                for k, (s, im) in enumerate(格):
+                    x, y = k % 列 * w, k // 列 * (h + 90)
+                    图.paste(im, (x, y))
+                    画.text((x + 6, y + h + 6), f"第{s['号']}句 {时[s['号']][0]:.1f}s", font=字体, fill=(255, 220, 60))
+                    稿行 = s["字幕"]
+                    画.text((x + 6, y + h + 36), 稿行[:15], font=字体, fill=(255, 255, 255))
+                    if len(稿行) > 15:
+                        画.text((x + 6, y + h + 62), 稿行[15:30], font=字体, fill=(255, 255, 255))
+                图.save(出 / "字幕对照.jpg", quality=88)
+                问题.append(f"字幕是烧在画面上的，脚本读不出字：看 {出 / '字幕对照.jpg'}，每格画面里的字幕和下面的稿子逐字比（数字、错别字、漏字）")
+        except ImportError:
+            问题.append("字幕没查：没有字幕文件，也没装 PIL 出对照图；请人眼对着稿子看一遍")
+    报告 = ["# 口播质检：" + Path(g.视频).name, "", f"- 规格：{d.get('宽')}×{d.get('高')}，{d['时长']:.2f} 秒", ""]
+    报告 += [f"- ❌ {x}" for x in 问题 if "字幕对照" not in x] + [f"- 👀 {x}" for x in 问题 if "字幕对照" in x] + [f"- ⚠️ {x}" for x in 提醒] + [f"- ✅ {x}" for x in 好]
+    硬 = [x for x in 问题 if "字幕对照" not in x]
+    报告 += ["", "结论：" + ("改完再发" if 硬 else "机器能查的都过了" + ("；字幕对照图人眼核完再发" if 问题 else ""))]
+    (出 / "口播质检.md").write_text("\n".join(报告) + "\n", encoding="utf-8")
+    print("\n".join(报告))
+    return 1 if 硬 else 0
+
+
 def main():
     ap = argparse.ArgumentParser(description="成片质检和导出")
     sub = ap.add_subparsers(dest="做", required=True)
@@ -273,8 +414,14 @@ def main():
     h.add_argument("--图", nargs="+", required=True)
     h.add_argument("--题", required=True)
     h.add_argument("--比例", default="3:4", choices=["3:4", "9:16", "1:1"])
+    k = sub.add_parser("口播")
+    k.add_argument("视频")
+    k.add_argument("--稿", required=True)
+    k.add_argument("--字幕")
+    k.add_argument("--删", default="")
+    k.add_argument("--出")
     g = ap.parse_args()
-    sys.exit({"查": 查, "联系表": 联系表, "审片": 审片, "封面": 封面, "安全区": 安全区, "封面AB": 封面AB}[g.做](g))
+    sys.exit({"口播": 口播, "查": 查, "联系表": 联系表, "审片": 审片, "封面": 封面, "安全区": 安全区, "封面AB": 封面AB}[g.做](g))
 
 
 if __name__ == "__main__":

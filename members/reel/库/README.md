@@ -12,3 +12,4 @@
 | 质检坑清单 32 条 | `坑清单.md` | reel-check |
 | 真人姿势要点 | `真人姿势.md` | reel-board、reel-still |
 | 3 首免版权曲（CC0） | `音乐/` | reel-music |
+| 口播片：三种做法、录制要点、清剪和插画面规矩、卡片版式、质检清单 | `口播剪辑卡.md` | reel-brief、reel-voice、reel-board、reel-cut、reel-check |

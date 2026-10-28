@@ -1,4 +1,6 @@
-"""带货片的字：底部字幕、花字、左上品牌贴纸、价格、行动号召按钮，生成一份 ASS 字幕给 ffmpeg 烧（成片.py 带货模式自动调用）。
+"""带货片、口播片的字：底部字幕、花字、左上品牌贴纸、价格、行动号召按钮，生成一份 ASS 字幕给 ffmpeg 烧（成片.py 带货、口播模式自动调用）。
+口播片：字幕照剪辑方案「台词」那一格（就是稿子原文），一句一条、跟着这句的时间；==重点== 黄色、**花字** 黄色放大；
+  一条超过 14 个字拆成两条依次出；句尾的逗号句号不显示（问号叹号留着）。
 读：分镜.md 的「字幕」列（没有就用「台词」；**关键词** 换高亮色；「／」分成几段依次出）、「花字」列；剪辑.json 的 贴纸、价格、行动。
 位置照安全区（库/视频规格.md 第三节的推算值）：字幕和按钮都在底部 20% 之上、右边留出按钮栏，花字在顶部 15% 处（再高描边会蹭进顶部 10% 的按钮区）。
 特写刀字幕挡住货（扣子、印花）：镜头表这一刀的备注写「字幕上」，这一刀的字幕挪到画面上部（花字下面）。
@@ -34,13 +36,30 @@ def 秒(t):
     return f"{int(t // 3600)}:{int(t % 3600 // 60):02d}:{t % 60:05.2f}"
 
 
-def 转义(text):
+def 转义(text, 放大=False):
     text = text.replace("\\", "＼").replace("{", "（").replace("}", "）")
-    return re.sub(r"\*\*(.+?)\*\*", lambda m: "{\\1c" + 高亮 + "}" + m[1] + "{\\r}", text)
+    text = re.sub(r"==(.+?)==", lambda m: "{\\1c" + 高亮 + "}" + m[1] + "{\\r}", text)
+    大 = "\\fscx125\\fscy125" if 放大 else ""
+    return re.sub(r"\*\*(.+?)\*\*", lambda m: "{\\1c" + 高亮 + 大 + "}" + m[1] + "{\\r}", text)
 
 
 def 去标(text):
-    return re.sub(r"\*\*", "", text)
+    return re.sub(r"\*\*|==", "", text)
+
+
+def 拆行(text, 最多=14):
+    """超过 14 个字：在靠中间的逗号顿号处拆，没有就从中间拆（不拆开 ** == 标记里的字）。"""
+    if len(去标(text)) <= 最多:
+        return [text]
+    中 = len(text) / 2
+    候 = [m.end() for m in re.finditer(r"[，、；：,]", text[:-1])]
+    for k in sorted(候, key=lambda k: abs(k - 中)):
+        if text[:k].count("**") % 2 == 0 and text[:k].count("==") % 2 == 0:
+            return 拆行(text[:k], 最多) + 拆行(text[k:], 最多)
+    k = int(中)
+    while k < len(text) and (text[:k].count("**") % 2 or text[:k].count("==") % 2):
+        k += 1
+    return [text[:k], text[k:]] if 0 < k < len(text) else [text]
 
 
 def 空(text):
@@ -51,6 +70,23 @@ def 条目(P, 设置, 总长):
     """[(起, 止, 样式, 文字)]，文字里的 **词** 还没转。"""
     out = []
     表 = 镜头表.读镜头表(P / "分镜.md")
+    if 设置.get("类型") == "口播":
+        for s in 表:
+            字 = re.sub(r"[，。,.]+$", "", s.get("台词", "").strip())
+            if not 空(字):
+                段 = 拆行(字)
+                权 = [max(1, len(去标(x))) for x in 段]
+                起, 长 = s["进"], s["出"] - s["进"] - 0.02
+                样式 = "SubTop" if "字幕上" in s.get("备注", "") else "Sub"
+                for x, w in zip(段, 权):
+                    止 = 起 + 长 * w / sum(权)
+                    out.append((起, 止, 样式, x))
+                    起 = 止
+            if not 空(s.get("花字", "")):
+                out.append((s["进"] + 0.05, s["出"] - 0.05, "Hook", s["花字"]))
+        if 设置.get("片尾引导") and 表:
+            out.append((max(表[-1]["进"], 总长 - 2.5), 总长, "CTA", 设置["片尾引导"]))
+        return out
     for s in 表:
         进, 出 = s["进"], s["出"]
         字 = s.get("字幕", "")
@@ -104,7 +140,7 @@ def ass(P, 设置, 总长, W, H):
             continue
         特效 = {"Hook": "{\\fad(80,0)\\fscx125\\fscy125\\t(0,160,\\fscx100\\fscy100)}",
               "CTA": "{\\fad(150,0)}", "Price": "{\\fad(120,0)}"}.get(样式, "")
-        头.append(f"Dialogue: {0 if 样式.startswith('Sub') else 1},{秒(起)},{秒(止)},{样式},,0,0,0,,{特效}{转义(文)}")
+        头.append(f"Dialogue: {0 if 样式.startswith('Sub') else 1},{秒(起)},{秒(止)},{样式},,0,0,0,,{特效}{转义(文, 设置.get('类型') == '口播')}")
     out = P / "出片" / "字幕.ass"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text("\n".join(头) + "\n", encoding="utf-8")
