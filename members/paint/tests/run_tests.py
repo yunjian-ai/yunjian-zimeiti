@@ -454,6 +454,15 @@ else:
                 dark, body, empty = out.getpixel((30, 30)), out.getpixel((10, 10)), out.getpixel((1, 1))
             report(code == 0 and dark[:3] == (90, 60, 40) and body[2] > body[0] and empty[3] == 0,
                    "后期：换色只染浅色衣身，深色（扣子）不变、透明处还是透明", f"深 {dark} 身 {body} 空 {empty}")
+            # 印花贴回：图片层「正片叠底」要和底下相乘（吃到衣服的明暗），不是直接盖上去
+            flat_png(Path(t) / "衣.png", 100, 100, (200, 100, 100))
+            flat_png(Path(t) / "印花.png", 40, 40, (128, 128, 128))
+            (Path(t) / "贴.json").write_text(json.dumps([{"id": "印花", "type": "image", "src": "印花.png", "x": 0.3, "y": 0.3, "w": 0.4, "h": 0.4,
+                                                       "blend": "正片叠底"}], ensure_ascii=False), encoding="utf-8")
+            code = 后期.main(["排版", str(Path(t) / "衣.png"), str(Path(t) / "贴.json"), "-o", str(Path(t) / "贴回.png")])
+            with _I.open(Path(t) / "贴回.png") as out:
+                px = out.convert("RGB").getpixel((50, 50))
+            report(code == 0 and abs(px[0] - 100) <= 6 and abs(px[1] - 50) <= 6, "后期：图片层正片叠底，和衣服底色相乘", f"{px}")
 
 md = (LIB / "平台规格.md").read_text(encoding="utf-8")
 heads = set(re.findall(r"^### (\S+?)(?:（|$)", md, re.M))

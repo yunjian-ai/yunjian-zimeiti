@@ -415,9 +415,14 @@ def put_shape(e, L, box):
     return lid
 
 
+BLEND = {"正片叠底": "Multiply", "滤色": "Screen", "叠加": "Overlay", "柔光": "Soft Light", "正常": "Normal"}
+
+
 def effects(e, lid, L):
     if L.get("opacity") not in (None, 1, 1.0):
         e.cmd("layer.setProps", layer=lid, opacity=float(L["opacity"]))
+    if L.get("blend"):  # 印花贴回衣服用正片叠底，吃到褶皱和光影（后期卡第四节）
+        e.cmd("layer.setProps", layer=lid, blend=BLEND.get(L["blend"], L["blend"]))
     if L.get("type") == "text" and L.get("gradient"):
         g = L["gradient"]
         e.style(lid, "layer.layerStyle.gradientOverlay", **{"from": hexc(g[0]), "to": hexc(g[-1]), "angle": L.get("angle", 0), "style": "linear"})
