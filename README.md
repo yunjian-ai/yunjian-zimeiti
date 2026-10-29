@@ -97,7 +97,7 @@
    |---|---|
    | 执笔 Pen | https://x.ai/bot/jMX4Hfy-oktuW9JAtYXUk |
    | 丹青 Paint | https://x.ai/bot/tiNAoij1vjMBy_dsou59n |
-   | 掠影 Reel | https://x.ai/bot/91Xwhv5MAS5imt1uQpHI2 |
+   | 掠影 Reel | https://x.ai/bot/YBDYOWCRZNcwm1Vy9d-Eo |
 
 2. 第一次对话时它会问能不能从本仓库装齐技能，说可以，一分钟装好，不装插件、不要密钥。
 
