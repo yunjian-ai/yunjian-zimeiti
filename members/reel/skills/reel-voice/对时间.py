@@ -33,6 +33,8 @@ def 读稿(path):
     句们, 段, 提示 = [], 0, ""
     for l in Path(path).read_text(encoding="utf-8").splitlines():
         s = l.strip()
+        if 句们 and re.fullmatch(r"-{3,}|={3,}|\*{3,}", s):
+            break  # 执笔稿正文写完用 --- 隔开，下面是出处表、自查记录，不是台词
         if not s or s.startswith(("标题", ">", "---", "#")) or re.match(r"^约\s*\d+", s):
             continue
         if 段头.match(s):
@@ -82,14 +84,15 @@ def 整数(s):
 
 
 def 字串(text):
-    """台词 → 只留汉字、字母（数字读成汉字）的列表。"""
+    """台词 → 只留汉字、英文字母（数字读成汉字）的列表；英文一个字母一项，「Grok Bot」和「GrokBot」比起来一样。"""
     t = re.sub(r"\d+(\.\d+)?", 数转汉字, text)
-    return re.findall(r"[一-鿿]|[A-Za-z]+", t)
+    return re.findall(r"[一-鿿]|[A-Za-z]", t)
 
 
 def 音(字们):
+    """一个字（或一个英文词）对一个音节，长度和输入一样——英文词整词小写，不拆成字母（10-28 稿子里有「Grok Bot」时对不齐、下标越界）。"""
     from pypinyin import Style, lazy_pinyin
-    return [p.lower() for p in lazy_pinyin(字们, style=Style.NORMAL, errors=lambda x: list(x))]
+    return [lazy_pinyin(c, style=Style.NORMAL)[0].lower() if re.match(r"[一-鿿]", c) else c.lower() for c in 字们]
 
 
 def 像(a, b):

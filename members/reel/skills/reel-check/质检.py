@@ -306,8 +306,12 @@ def 口播(g):
             问题.append("没转成文字，「每句一次」没查：" + (r.stdout + r.stderr).strip().splitlines()[-1])
             结果 = None
         else:
-            subprocess.run([sys.executable, str(对), "对", str(tmp)], capture_output=True, text=True)
-            结果 = json.loads((tmp / "口播" / "对时间.json").read_text(encoding="utf-8"))
+            r2 = subprocess.run([sys.executable, str(对), "对", str(tmp)], capture_output=True, text=True)
+            if (tmp / "口播" / "对时间.json").exists():
+                结果 = json.loads((tmp / "口播" / "对时间.json").read_text(encoding="utf-8"))
+            else:
+                问题.append("对稿子那步没跑完，「每句一次」没查：" + ((r2.stdout + r2.stderr).strip().splitlines() or ["没有输出"])[-1])
+                结果 = None
     finally:
         pass
     时 = {}

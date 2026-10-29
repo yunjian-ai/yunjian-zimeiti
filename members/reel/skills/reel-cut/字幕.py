@@ -49,17 +49,22 @@ def 去标(text):
 
 def 拆行(text, 最多=14):
     """超过 14 个字：在靠中间的逗号顿号处拆，没有就从中间拆（不拆开 ** == 标记里的字）。"""
-    if len(去标(text)) <= 最多:
+    if len(去标(text).rstrip("，。、；：,.！？!? ")) <= 最多:  # 句末标点不算长度
         return [text]
     中 = len(text) / 2
-    候 = [m.end() for m in re.finditer(r"[，、；：,]", text[:-1])]
-    for k in sorted(候, key=lambda k: abs(k - 中)):
-        if text[:k].count("**") % 2 == 0 and text[:k].count("==") % 2 == 0:
-            return 拆行(text[:k], 最多) + 拆行(text[k:], 最多)
-    k = int(中)
-    while k < len(text) and (text[:k].count("**") % 2 or text[:k].count("==") % 2):
-        k += 1
-    return [text[:k], text[k:]] if 0 < k < len(text) else [text]
+    两边有字 = lambda k: 去标(text[:k]).strip() and 去标(text[k:]).strip()  # noqa: E731  切完两边都得有字，不然会原样再进来
+    候 = sorted((m.end() for m in re.finditer(r"[，；：,]", text) if 两边有字(m.end())), key=lambda k: abs(k - 中)) or \
+        sorted((m.end() for m in re.finditer(r"、", text) if 两边有字(m.end())), key=lambda k: abs(k - 中)) or [int(中)]  # 先逗号分号，没有再顿号
+    k = 候[0]
+    while 0 < k < len(text) and (text[k - 1:k + 1] in ("**", "==")):
+        k += 1  # 不切在标记的两个符号中间
+    if not 0 < k < len(text):
+        return [text]
+    a, b = text[:k], text[k:]
+    for 标 in ("**", "=="):  # 切在重点标记里面：前半句补收尾、后半句补开头（整句被 ==…== 包住时也能拆）
+        if a.count(标) % 2:
+            a, b = a + 标, 标 + b
+    return 拆行(a, 最多) + 拆行(b, 最多)
 
 
 def 空(text):

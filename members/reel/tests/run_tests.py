@@ -186,6 +186,13 @@ try:
         句 = {s["号"]: s for s in 结["句"] if s["号"]}
         应该(句[5]["状态"] == "漏念" and 句[3]["状态"] == "改了说法？" and "足足" in 句[3]["听到"], "对时间.py：漏念、改了说法没认出来：" + out[-700:])
         应该([m["听到"] for m in 结["多出来的"]] == ["真的特别好用"] and code == 1, "对时间.py：多出来的话没列给主人：" + out[-400:])
+    # 稿子里有英文词（10-28 演练：「Grok Bot」被拆成字母、对不齐崩了）
+    with tempfile.TemporaryDirectory() as t:
+        P = Path(t)
+        (P / "稿子.md").write_text("三位都是 Grok Bot，\n打开分享卡就能导入。\n", encoding="utf-8")
+        造转写(P, [(0.5, "三位都是GrokBot"), (2.5, "打开分享卡就能导入")])
+        code, out = 跑("reel-voice/对时间.py", "对", str(P))
+        应该(code == 0 and "对上 2" in out, "对时间.py：稿子带英文词对不上或崩了：" + out[-500:])
 except ImportError:
     print("（没装 pypinyin，口播对时间的用例跳过）")
 
@@ -288,6 +295,9 @@ if 有音视频工具():
             应该(code == 0 and (P / "出片" / "成片.mp4").exists(), "成片.py 口播：成片没出来：" + out[-500:])
             ass = (P / "出片" / "字幕.ass").read_text(encoding="utf-8") if (P / "出片" / "字幕.ass").exists() else ""
             应该("第三句？" in ass and "第一句，" not in ass and "第一句" in ass, "成片.py 口播：字幕没照台词、句尾逗号没去：" + ass[-300:])
+            import 字幕
+            应该(字幕.拆行("==现在印花、扣子、字、logo，一律从原图抠出来贴回去==") == ["==现在印花、扣子、字、logo，==", "==一律从原图抠出来贴回去=="],
+                 "字幕.py：整句被 ==…== 包住时超 14 字没拆（10-28 演练字幕出画面）")
             (P / "稿子.md").write_text("约 6 秒\n🟥 ①\n第一句，\n第二句。\n🟧 ②\n第三句？\n第四句。\n第五句。\n", encoding="utf-8")
             (P / "出片" / "字幕.ass").write_text(ass.replace("第三句？", "第叁句？"), encoding="utf-8")
             code, out = 跑("reel-check/质检.py", "口播", str(P / "出片" / "成片.mp4"), "--稿", str(P / "稿子.md"), "--删", "5")

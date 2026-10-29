@@ -162,6 +162,29 @@ def 排时间(P, 留白, 最短):
         print(f"  第 {号} 刀 {a:.2f}–{b:.2f}")
 
 
+def 压句内停顿(y, sr, 上限=0.45, 留=0.3):
+    """AI 配音一句里遇到逗号问号会自己停 0.5～0.8 秒：超过 上限 的安静压到 留 秒（口播片任何停顿不超过 0.5 秒）。"""
+    import numpy as np
+    hop = sr // 100
+    m = len(y) // hop
+    db = 20 * np.log10(np.sqrt(np.mean(y[:m * hop].reshape(m, hop) ** 2, axis=1) + 1e-12) + 1e-9)
+    门 = max(-45.0, float(np.percentile(db, 95)) - 30)
+    段, s0, out, 上 = [], None, [], 0
+    for i, v in enumerate(list(db) + [0.0]):
+        if v < 门 and i < m:
+            s0 = i if s0 is None else s0
+        elif s0 is not None:
+            if (i - s0) / 100 > 上限 and s0 > 0 and i < m:
+                段.append((s0 * hop, i * hop))
+            s0 = None
+    半 = int(留 * sr / 2)
+    for a, b in 段:  # 停顿前后各留一半，中间剪掉
+        out += [y[上:a + 半], y[b - 半:b]]
+        上 = b
+    out.append(y[上:])
+    return np.concatenate(out) if 段 else y
+
+
 def 口播(P, g):
     """不露脸口播：稿子逐句合成 → 按句型停顿拼起来 → 口播/粗剪.wav ＋ 清剪.json（和清剪.py 出的同一个样子）。"""
     sys.path.insert(0, str(HERE.parent / "reel-cut"))
@@ -186,7 +209,8 @@ def 口播(P, g):
     for i, s in enumerate(句们):
         f = d / f"{s['号']:02d}.wav"
         合成一句(py, s["字幕"], 声音, 语速, f)
-        y = 媒体.解码音频(f, sr=SR)
+        y = 压句内停顿(媒体.解码音频(f, sr=SR), SR)
+        媒体.写音频(f, y, SR)
         句时.append({**{k: s[k] for k in ("号", "原文", "字幕", "句尾", "段", "提示")}, "多出来的": False,
                     "起": round(t, 3), "止": round(t + len(y) / SR, 3)})
         停 = 0.4 if i == len(句们) - 1 else 清剪.停顿表.get(s["句尾"], 0.22)

@@ -62,10 +62,10 @@ def 结尾(g, W, H):
 
 
 def 安全框(W, H):
-    """内容只放这里：左 6%、右让出 18%（点赞评论那一列）、上 10%、下让出 28%（文案、按钮）；横屏宽松些。"""
+    """内容只放这里：左 6%、右让出 18%（点赞评论那一列）、上 10%、下让出 32%（字幕在 74% 左右，再往下是文案、按钮）；横屏宽松些。"""
     if W > H:
         return int(W * 0.06), int(H * 0.08), int(W * 0.94), int(H * 0.82)
-    return int(W * 0.06), int(H * 0.10), int(W * 0.82), int(H * 0.72)
+    return int(W * 0.06), int(H * 0.10), int(W * 0.82), int(H * 0.68)
 
 
 def 合字(画, text, 宽, 号, 下限=0.6):
@@ -88,8 +88,13 @@ def 写段(画, text, x, y, 宽, 号, 颜色):
         画.text((x, y), text, font=字, fill=颜色)
         return y + 号 * 1.35
     中 = len(text) / 2
-    候 = sorted((m.end() for m in __import__("re").finditer(r"[，、；：,]", text[:-1])), key=lambda k: abs(k - 中)) or [int(中)]
-    a, b = text[:候[0]], text[候[0]:]
+    re_ = __import__("re")
+    候 = sorted((m.end() for m in re_.finditer(r"[，、；：,]", text[:-1])), key=lambda k: abs(k - 中))
+    if not 候:  # 没有标点：先找空格，再找两边不都是英文字母数字的地方，不把「Grok」这类词折开
+        候 = sorted((m.end() for m in re_.finditer(r" ", text[:-1])), key=lambda k: abs(k - 中)) or \
+            sorted((k for k in range(1, len(text)) if not (text[k - 1].isascii() and text[k - 1].isalnum() and text[k].isascii() and text[k].isalnum())),
+                   key=lambda k: abs(k - 中)) or [int(中)]
+    a, b = text[:候[0]].rstrip(), text[候[0]:].lstrip()
     字 = 合字(画, max(a, b, key=len), 宽, 号)
     if not 字:
         写不下(text)
