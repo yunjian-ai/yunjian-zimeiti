@@ -16,7 +16,7 @@ LIM = CONFIG["limits"]
 
 # 公开仓库白名单：tools/publish.py 照它挑文件，tools/validate.py 照它扫——两边用同一份，平时检查不会比发布扫得少
 PUBLIC_FILES = ["LICENSE", "CHANGELOG.md", ".gitignore", ".github/workflows/ci.yml", "shared",
-                "tools/validate.py", "tools/pack.py", "tools/test_install.py", "tools/config.json", "tools/check_prompt.py", "tools/check_report.py",
+                "tools/validate.py", "tools/wuceng.py", "tools/pack.py", "tools/test_install.py", "tools/config.json", "tools/check_prompt.py", "tools/check_report.py",
                 "tools/make_hero.py", "tools/common.py", "assets/hero.png", "assets/hero-底图.png", "assets/hero-底图.html", "assets/README.md", "assets/wechat-qr.jpg"]
 MEMBER_ITEMS = ["profile.json", "memory.md", "VERSION", "install.sh", "skills", "examples", "dist"]
 # 成员带的库和工具（有就挑，没有跳过）：只挑公开的部分；候选-自用、待拆、归档这些自用的不进
@@ -49,6 +49,12 @@ def is_material(rel):
 RENAME = {"发布素材/README.md": "README.md", "发布素材/CONTRIBUTING.md": "CONTRIBUTING.md"}
 
 
+
+def exam_version(f):
+    """考题第一行写的版本号（如「考题 v0.2」）；文件名不统一（考题.md、考题-v0.2.md、考题v0.2.md），按名字排会把旧版排到后面。"""
+    m = re.search(r"v(\d+)\.(\d+)", f.read_text(encoding="utf-8").split("\n", 1)[0])
+    return (int(m.group(1)), int(m.group(2))) if m else (0, 0)
+
 def public_picks(root):
     """要进公开仓库的 [(开发仓库里的源路径, 公开仓库里的相对路径)]，源可以是文件夹；不检查存不存在。
     在公开仓库里跑时，改名的那几份源文件不在，就直接用改名后的位置。"""
@@ -60,7 +66,7 @@ def public_picks(root):
             continue
         picks += [(m / i, f"members/{m.name}/{i}") for i in MEMBER_ITEMS]
         picks += [(m / i, f"members/{m.name}/{i}") for i in MEMBER_EXTRAS if (m / i).exists()]
-        tests = sorted((m / "tests").glob("考题*.md"))  # 公开的考题用最新一版，统一叫 考题.md
+        tests = sorted((m / "tests").glob("考题*.md"), key=exam_version)  # 公开的考题用最新一版（按第一行写的版本号，不按文件名排），统一叫 考题.md
         if tests:
             picks.append((tests[-1], f"members/{m.name}/tests/考题.md"))
         picks += [(m / "tests" / i, f"members/{m.name}/tests/{i}") for i in MEMBER_TEST_ITEMS]

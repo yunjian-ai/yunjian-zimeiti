@@ -8,6 +8,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from common import LIM, MEMBER_EXTRAS, hash_hits, is_material, is_unpublished, norm, parse_frontmatter, public_picks  # noqa: E402
+import wuceng  # noqa: E402  五层上岗检查（shared/岗位说明写法.md 第五节）
 
 REQUIRED = ("install", "update", "getting-started")
 LESSON = re.compile(r"第[一二三四五六七八九十0-9]+课")
@@ -63,7 +64,12 @@ def check_member(m, root, errors):
         total += (m / "memory.md").stat().st_size
     skills = sorted(d for d in (m / "skills").iterdir() if d.is_dir())
     names, corpus = {d.name for d in skills}, {}
-    # 岗位说明（shared/岗位说明写法.md 第四节）
+    # 导出说明（EXPORT.md）里写的卡外技能数要等于实际技能数减 2（卡里只带安装、第一次见面两个）
+    exp = m / "EXPORT.md"
+    for n in re.findall(r"另外 (\d+) 个技能", exp.read_text(encoding="utf-8") if exp.exists() else ""):
+        if int(n) != len(names) - 2:
+            errors.append(f"[export] {name}: EXPORT.md 写「另外 {n} 个技能」，实际应为 {len(names) - 2}")
+    # 岗位说明（shared/岗位说明写法.md 第五节）
     if prof.exists():
         ins = json.loads(prof.read_text(encoding="utf-8")).get("instructions", "")
         if not ins.startswith("你是"):
@@ -218,6 +224,7 @@ def main(root):
     for m in sorted((root / "members").iterdir()):
         if (m / "skills").is_dir():
             totals[m.name] = check_member(m, root, errors)
+            wuceng.check(m, errors)
     # 借用：从起元原样借来的文件（正本在起元），要和正本一字不差；正本不在本机（如 CI）就跳过
     cfg = json.loads((root / "tools" / "config.json").read_text(encoding="utf-8"))
     for b in cfg.get("borrow", []):
