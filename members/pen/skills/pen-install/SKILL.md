@@ -1,7 +1,7 @@
 ---
 name: pen-install
 description: >-
-  安装执笔的完整技能包。对话开头技能目录里 pen- 开头的技能不满 15 个、或安装状态里还没装、装的比这一版旧时先用它（比这一版新就不用，不装回旧版）；主人说「安装执笔」「重装执笔」「执笔坏了」「修一下执笔」「体检执笔」，或 pen-update 主人同意更新、每周检查发现问题时也用它。
+  安装执笔的完整技能包。对话开头技能目录里 pen- 开头的技能不满 12 个、或安装状态里还没装、装的比这一版旧时先用它（比这一版新就不用，不装回旧版）；主人说「安装执笔」「重装执笔」「执笔坏了」「修一下执笔」「体检执笔」，或 pen-update 主人同意更新、每周检查发现问题时也用它。
   从云间公开仓库的固定标签安装，装之前跟主人说一句，不装插件、不要密钥，不动主人的档案。
 ---
 
@@ -19,7 +19,7 @@ description: >-
 ```bash
 curl -fsSL https://raw.githubusercontent.com/{{OWNER}}/{{REPO}}/pen-v{{VERSION}}/members/pen/dist/install.sh | bash
 ```
-- 输出 `INSTALLED 15 <目录>`：用 `ls` 确认目录里有 15 个 `pen-` 技能。
+- 输出 `INSTALLED 12 <目录>`：用 `ls` 确认目录里有 12 个 `pen-` 技能。
 - 输出 `LIBRARY <文件夹>`：公共底盘库（爆款卡、平台打法、手法）和抓取工具装好了，放在 `~/.yunjian/pen/`；主人的「我的库」只建不碰。输出 `LIBRARY_SKIPPED`：库没装上，技能照样能用，跟主人说一句「这次库没装上，写稿时参照会少一些，下次更新再装」。
 - 多打一行 `BACKUP <文件夹> <文件>`：这几个是主人自己改过的技能，脚本已经先备份到那个文件夹、再换回原版；收尾时告诉主人一句备份在哪。
 - 看到 `NO_SKILL_DIR`，或者根本没有 shell：改用网页抓取把上面的配方打开，`skills` 里有几项就写几个技能，名字、说明、正文和卡片都**照原样**写，一个字不改。
@@ -37,6 +37,6 @@ curl -fsSL https://raw.githubusercontent.com/{{OWNER}}/{{REPO}}/pen-v{{VERSION}}
 ```bash
 curl -fsSL https://raw.githubusercontent.com/{{OWNER}}/{{REPO}}/pen-v{{VERSION}}/members/pen/dist/install.sh | bash -s -- --check
 ```
-2. `CHECK OK`：主人主动问的，回一句「执笔的 15 个技能都在，和原版一致」；每周检查不用单独说。
+2. `CHECK OK`：主人主动问的，回一句「执笔的 12 个技能都在，和原版一致」；每周检查不用单独说。
 3. `CHECK PROBLEM`：用大白话告诉主人缺了哪几个（MISSING 那行）、哪几个和原版不一样（CHANGED 那行），问一句「要恢复成原版吗？您改过的会先备份」。主人同意才照第 2 步重装这一版，装完说备份在哪。
 4. 记忆里「执笔安装规矩」或「执笔装完规矩」没了，从安装脚本打印的 RULE 对应那段补回；「执笔安装状态」没了，就当还没装，问过主人再装。

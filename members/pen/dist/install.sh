@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # 执笔安装脚本（tools/pack.py 填好版本后生成 dist/install.sh）。不需要 gh，不需要登录。
-# 装、更新、修复：curl -fsSL https://raw.githubusercontent.com/yunjian-ai/yunjian-zimeiti/pen-v0.3.11/members/pen/dist/install.sh | bash
+# 装、更新、修复：curl -fsSL https://raw.githubusercontent.com/yunjian-ai/yunjian-zimeiti/pen-v0.4.0/members/pen/dist/install.sh | bash
 # 只体检、不改：  在 bash 后面加 -s -- --check
 # 当 Skill 用：   在 bash 前面加 PEN_SKILL_DIR=技能目录（比如 ~/.claude/skills）
 export GIT_TERMINAL_PROMPT=0
 MODE=${1:-install}
-T=pen-v0.3.11; R=https://github.com/yunjian-ai/yunjian-zimeiti
+T=pen-v0.4.0; R=https://github.com/yunjian-ai/yunjian-zimeiti
 RAW=https://raw.githubusercontent.com/yunjian-ai/yunjian-zimeiti/$T/members/pen/dist/recipe.json
 W=/tmp/yunjian-$T; RJ=/tmp/recipe-$T.json; rm -rf "${W:?}"
 git clone -q --depth 1 --branch "$T" "$R" "$W" 2>/dev/null && cp "$W/members/pen/dist/recipe.json" "$RJ" \
@@ -18,7 +18,7 @@ fi
 python3 - "$RJ" "$D" "$MODE" <<'PY'
 import hashlib, json, os, sys, time
 r = json.load(open(sys.argv[1], encoding="utf-8")); d, mode = sys.argv[2], sys.argv[3]
-assert r["version"] == "0.3.11", "版本不对"
+assert r["version"] == "0.4.0", "版本不对"
 ok = [s for s in r["skills"] if s["name"].startswith("pen-") and len(s["content"].encode()) <= 98304]
 assert len(ok) == len(r["skills"]), "技能校验没过"
 if not d:
@@ -41,12 +41,15 @@ def now(rel):
         return open(os.path.join(d, rel), encoding="utf-8").read()
     except Exception:
         return None
+RETIRED = ["pen-source", "pen-angle", "pen-remake"]  # 10-30 并进 pen-fetch、pen-title、pen-draft；旧文件夹装新版时挪进备份，不删
+left = [n for n in RETIRED if os.path.isdir(os.path.join(d, n))]
 if mode == "--check":
     missing = [k for k in want if now(k) is None]
     changed = [k for k in want if now(k) is not None and not same(now(k), want[k])]
     print("CHECK", "OK" if not missing and not changed else "PROBLEM", "装的版本", old.get("version", "不知道"), "对照", r["tag"])
     print("MISSING", ",".join(missing) or "-")
     print("CHANGED", ",".join(changed) or "-")
+    print("RETIRED_LEFT", ",".join(left) or "-")
     sys.exit(0)
 # 装：主人自己改过的文件（和上回装的原样不一样）先备份，再换成原版
 backup = os.path.join(os.path.expanduser("~"), "yunjian-backup", "pen-" + time.strftime("%Y%m%d-%H%M%S"))
@@ -60,6 +63,8 @@ for k, t in want.items():
     open(os.path.join(d, k), "w", encoding="utf-8").write(t)
 json.dump({"version": r["version"], "tag": r["tag"], "installed": time.strftime("%Y-%m-%d"),
            "files": {k: fp(t) for k, t in want.items()}}, open(state_file, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+for n in left:  # 退役的技能整个文件夹挪进备份（不删），免得旧说明还被叫起来
+    os.makedirs(backup, exist_ok=True); os.rename(os.path.join(d, n), os.path.join(backup, n)); saved.append(n + "/")
 print("INSTALLED", len(ok), d)
 if saved:
     print("BACKUP", backup, ",".join(saved))

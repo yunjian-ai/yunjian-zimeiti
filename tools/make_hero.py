@@ -1,4 +1,4 @@
-"""把底图做成 1600×640 的云间首页主视觉，并叠上标题。只用标准库，靠本机的 Chrome 无界面模式排版截图。
+"""把底图做成 1600×640 的首页主视觉，并叠上标题（标题、系列、成员一行、出品方都在 config.json 的 hero、brand）。只用标准库，靠本机的 Chrome 无界面模式排版截图。
 用法：python3 tools/make_hero.py <底图> [输出=assets/hero.png]"""
 import base64
 import subprocess
@@ -8,7 +8,10 @@ from pathlib import Path
 
 W, H = 1600, 640
 CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
-TITLE, EN, SUB, CREW = "云间Bot·万象", "CLOUDMERE", "一元复始，万象更新", "执笔写稿 · 丹青作画 · 掠影成片"
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from common import BRAND, CONFIG  # noqa: E402
+
+TITLE, EN, SUB, CREW = (CONFIG["hero"][k] for k in ("标题", "英文", "副标题", "成员"))
 
 
 def main(src, out="assets/hero.png"):
@@ -28,7 +31,7 @@ html,body{{margin:0;width:{W}px;height:{H}px;overflow:hidden;background:#cfe0ea}
 .c{{position:absolute;top:324px;width:100%;text-align:center;font-family:"Songti SC","STSong",serif;font-size:24px;letter-spacing:5px;color:#2f5674;text-shadow:0 2px 10px rgba(255,255,255,.95)}}
 .ai{{position:absolute;right:14px;bottom:10px;font-family:"PingFang SC",sans-serif;font-size:14px;color:rgba(30,50,70,.55)}}
 </style></head><body><div class="bg"></div><div class="fog"></div>
-<div class="t">{TITLE}</div><div class="e">{EN}</div><div class="s">{SUB}</div><div class="c">{CREW}</div><div class="ai">云间工作室出品</div></body></html>"""
+<div class="t">{TITLE}</div><div class="e">{EN}</div><div class="s">{SUB}</div><div class="c">{CREW}</div><div class="ai">{BRAND["出品方"]}出品</div></body></html>"""
     with tempfile.TemporaryDirectory() as d:
         page = Path(d) / "hero.html"
         page.write_text(html, encoding="utf-8")

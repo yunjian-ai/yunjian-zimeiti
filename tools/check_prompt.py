@@ -1,4 +1,4 @@
-"""对一段提示词做机械检查（青鸟规矩里能用程序验证的那部分）。只用标准库。
+"""对一段提示词做机械检查（提示词规矩里能用程序验证的那部分）。只用标准库。
 输入 JSON：kind（text / image / mj / video）、prompt（提示词全文）、seconds（视频时长，可选）、material（主人贴来的资料，可选）。
 输出问题代码列表：EMPHASIS / VAGUE / MJ_NOT_ENGLISH / MJ_TOO_LONG / MJ_NEGATIVE / VIDEO_NO_SEGMENTS / INJECTION_UNMARKED / INVENTED_NUMBER。
 给了 material 或 request（主人原话）时，提示词里带事实单位的数字（元、%、年、家、人、单、件、万…）都要能在里面找到；字数、秒数这类格式要求不算。

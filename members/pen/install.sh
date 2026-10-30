@@ -41,12 +41,15 @@ def now(rel):
         return open(os.path.join(d, rel), encoding="utf-8").read()
     except Exception:
         return None
+RETIRED = ["pen-source", "pen-angle", "pen-remake"]  # 10-30 并进 pen-fetch、pen-title、pen-draft；旧文件夹装新版时挪进备份，不删
+left = [n for n in RETIRED if os.path.isdir(os.path.join(d, n))]
 if mode == "--check":
     missing = [k for k in want if now(k) is None]
     changed = [k for k in want if now(k) is not None and not same(now(k), want[k])]
     print("CHECK", "OK" if not missing and not changed else "PROBLEM", "装的版本", old.get("version", "不知道"), "对照", r["tag"])
     print("MISSING", ",".join(missing) or "-")
     print("CHANGED", ",".join(changed) or "-")
+    print("RETIRED_LEFT", ",".join(left) or "-")
     sys.exit(0)
 # 装：主人自己改过的文件（和上回装的原样不一样）先备份，再换成原版
 backup = os.path.join(os.path.expanduser("~"), "yunjian-backup", "pen-" + time.strftime("%Y%m%d-%H%M%S"))
@@ -60,6 +63,8 @@ for k, t in want.items():
     open(os.path.join(d, k), "w", encoding="utf-8").write(t)
 json.dump({"version": r["version"], "tag": r["tag"], "installed": time.strftime("%Y-%m-%d"),
            "files": {k: fp(t) for k, t in want.items()}}, open(state_file, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+for n in left:  # 退役的技能整个文件夹挪进备份（不删），免得旧说明还被叫起来
+    os.makedirs(backup, exist_ok=True); os.rename(os.path.join(d, n), os.path.join(backup, n)); saved.append(n + "/")
 print("INSTALLED", len(ok), d)
 if saved:
     print("BACKUP", backup, ",".join(saved))

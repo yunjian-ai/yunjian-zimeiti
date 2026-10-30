@@ -18,6 +18,8 @@ jobs:
         run: python3 tools/pack.py --check
       - name: 安装脚本实测
         run: python3 tools/test_install.py
+      - name: 协同单子检查自测
+        run: python3 tools/test_danzi.py
       - name: 执笔夹具和反向用例
         run: python3 members/pen/tests/run_tests.py
       - name: 丹青夹具、反向用例和脚本自测

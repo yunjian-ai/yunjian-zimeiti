@@ -7,9 +7,11 @@
 <p align="center">执笔 Pen · cloudmere · Grok Bot 口播稿、长文、仿写、去 AI 味、多平台改写助手 · 仓库 <a href="https://github.com/yunjian-ai/yunjian-zimeiti">github.com/yunjian-ai/yunjian-zimeiti</a></p>
 
 <p align="center">
-  <a href="CHANGELOG.md"><img alt="执笔" src="https://img.shields.io/badge/执笔-v0.3.11-c0392b"></a>
-  <a href="CHANGELOG.md"><img alt="丹青" src="https://img.shields.io/badge/丹青-v0.5.5-2f6f9f"></a>
-  <a href="CHANGELOG.md"><img alt="掠影" src="https://img.shields.io/badge/掠影-v0.3.2-7a4fa0"></a>
+<!-- 总表:小标签 -->
+  <a href="CHANGELOG.md"><img alt="执笔" src="https://img.shields.io/badge/执笔-v0.4.0-c0392b"></a>
+  <a href="CHANGELOG.md"><img alt="丹青" src="https://img.shields.io/badge/丹青-v0.5.6-2f6f9f"></a>
+  <a href="CHANGELOG.md"><img alt="掠影" src="https://img.shields.io/badge/掠影-v0.3.3-7a4fa0"></a>
+<!-- /总表:小标签 -->
   <a href="LICENSE"><img alt="license" src="https://img.shields.io/badge/license-CC%20BY%204.0%20%2B%20MIT-555555"></a>
   <a href="https://github.com/yunjian-ai/yunjian-zimeiti/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/yunjian-ai/yunjian-zimeiti/actions/workflows/ci.yml/badge.svg"></a>
 </p>
@@ -95,18 +97,20 @@
 
    | 成员 | 分享链接 |
    |---|---|
+   <!-- 总表:安装表 -->
    | 执笔 Pen | https://x.ai/bot/jMX4Hfy-oktuW9JAtYXUk |
    | 丹青 Paint | https://x.ai/bot/tiNAoij1vjMBy_dsou59n |
    | 掠影 Reel | https://x.ai/bot/YBDYOWCRZNcwm1Vy9d-Eo |
+   <!-- /总表:安装表 -->
 
 2. 第一次对话时它会问能不能从本仓库装齐技能，说可以，一分钟装好，不装插件、不要密钥。
 
 **手动安装**（能跑 shell 的 Bot；Claude Code 等在 `bash` 前加技能目录，如 `PEN_SKILL_DIR=~/.claude/skills bash`）：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/yunjian-ai/yunjian-zimeiti/pen-v0.3.11/members/pen/dist/install.sh | bash
-curl -fsSL https://raw.githubusercontent.com/yunjian-ai/yunjian-zimeiti/paint-v0.5.5/members/paint/dist/install.sh | bash
-curl -fsSL https://raw.githubusercontent.com/yunjian-ai/yunjian-zimeiti/reel-v0.3.2/members/reel/dist/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/yunjian-ai/yunjian-zimeiti/pen-v0.4.0/members/pen/dist/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/yunjian-ai/yunjian-zimeiti/paint-v0.5.6/members/paint/dist/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/yunjian-ai/yunjian-zimeiti/reel-v0.3.3/members/reel/dist/install.sh | bash
 ```
 
 **更新、修复、反馈**，都是一句话：
@@ -122,9 +126,20 @@ curl -fsSL https://raw.githubusercontent.com/yunjian-ai/yunjian-zimeiti/reel-v0.
 
 | 系列 | 成员 | 职能 | 状态 |
 |---|---|---|---|
-| 万象 | 执笔 Pen | 写稿：口播、长文、仿写、多平台 | ✅ v0.3.11 |
-| 万象 | 丹青 Paint | 做图：单图直接出，系列图立母版锁人锁货，按平台规格出图；字、价格、多颜色、批量交 PhotoCraft 精确排，能出 PSD；拖着调 | ✅ v0.5.5 |
-| 万象 | 掠影 Reel | 短视频：锁人锁货锁场景，按拍子分镜，一刀一刀出静帧和视频，卡点剪辑、质检；音乐 MV、带货片、口播片 | ✅ v0.3.2 |
+<!-- 总表:路线图 -->
+| 起元 | 青鸟 Bluebird | 提示词 | ✅ v0.1.15，[另一个仓库](https://github.com/yunjian-ai/yunjian) |
+| 起元 | 千机 Gear | Skill | ✅ v0.2.4，[另一个仓库](https://github.com/yunjian-ai/yunjian) |
+| 起元 | 凝露 Dew | 蒸馏 | ✅ v0.1.11，[另一个仓库](https://github.com/yunjian-ai/yunjian) |
+| 起元 | 经纬 Loom | 本体 | ✅ v0.1.8，[另一个仓库](https://github.com/yunjian-ai/yunjian) |
+| 起元 | 试金 Touchstone | 验证 | ✅ v0.1.15，[另一个仓库](https://github.com/yunjian-ai/yunjian) |
+| 起元 | 照骨 Xray | 拆解 | ✅ v0.1.3，[另一个仓库](https://github.com/yunjian-ai/yunjian) |
+| 起元 | 起元操盘 Genesis | 操盘系统 | ✅ v0.1.11，[另一个仓库](https://github.com/yunjian-ai/yunjian) |
+| 万象 | 执笔 Pen | 写稿：口播、长文、仿写、多平台 | ✅ v0.4.0 |
+| 万象 | 丹青 Paint | 做图：单图直接出，系列图立母版锁人锁货，按平台规格出图；字、价格、多颜色、批量交 PhotoCraft 精确排，能出 PSD；拖着调 | ✅ v0.5.6 |
+| 万象 | 掠影 Reel | 短视频：锁人锁货锁场景，按拍子分镜，一刀一刀出静帧和视频，卡点剪辑、质检；音乐 MV、带货片、口播片 | ✅ v0.3.3 |
+| 万象 | 算盘 Abacus | 算账 | ✅ v0.1.2，[另一个仓库](https://github.com/yunjian-ai/yunjian-dianshang) |
+| 起元 | 起元架构 Architecture | 一群 AI 的底座 | ✅ v0.1.1，[另一个仓库](https://github.com/yunjian-ai/yunjian) |
+<!-- /总表:路线图 -->
 
 起元系列（提示词、Skill、蒸馏、本体、验证、统筹）在 [yunjian-ai/yunjian](https://github.com/yunjian-ai/yunjian)。
 

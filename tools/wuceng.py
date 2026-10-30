@@ -2,9 +2,11 @@
 还没改造的成员（没有 进度模板.md）只打印一条提醒；有了模板就按错误拦。"""
 import json
 import re
+from pathlib import Path
 
-MAX_RULES = 8          # 做法最多几条
-MAX_STATE_CHARS = 3000  # 进度模板（进度文件）最多几个字
+_B = json.loads((Path(__file__).resolve().parent / "预算.json").read_text(encoding="utf-8"))
+MAX_RULES = _B["做法条数"]        # 做法最多几条
+MAX_STATE_CHARS = _B["进度字"]    # 进度模板（进度文件）最多几个字
 NOT_WORK = ("install", "update", "getting-started")
 
 
@@ -43,7 +45,7 @@ def problems(m):
             continue
         text = f.read_text(encoding="utf-8")
         for need in ("先读进度", "写进度"):
-            if not re.search(rf"(?<!不){need}", text):  # 「不写进度」不算写了（10-29 掠影 reel-brief 漏过）
+            if not re.search(rf"(?<!不){need}", text):  # 「不写进度」不算写了（10-29 有一位成员的技能这样漏过）
                 out.append(f"{d.name} 没写「{need}」")
     design = m / "DESIGN.md"
     body = design.read_text(encoding="utf-8") if design.exists() else ""

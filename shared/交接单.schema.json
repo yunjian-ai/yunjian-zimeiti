@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "交接单.schema.json",
+  "title": "交接单",
+  "description": "派活用的单子（协同协议第二节）。一栏一行「- 栏名：内容」，程序解析成这个对象再校验。",
+  "x-上限字": 1500,
+  "type": "object",
+  "required": [
+    "标题",
+    "这一段",
+    "目标",
+    "用到的料",
+    "边界",
+    "交回格式",
+    "验收标准",
+    "预算",
+    "结果"
+  ],
+  "properties": {
+    "标题": {
+      "type": "string",
+      "description": "「### 交接单 · 」后面的部分：第几段、派给谁",
+      "minLength": 1
+    },
+    "这一段": {
+      "type": "string",
+      "description": "哪件活的哪一段、派给谁",
+      "minLength": 1
+    },
+    "目标": {
+      "type": "string",
+      "description": "一两句，这一段要做成什么",
+      "minLength": 1
+    },
+    "用到的料": {
+      "type": "string",
+      "description": "输入文件的路径，只写路径不贴全文",
+      "minLength": 1
+    },
+    "边界": {
+      "type": "string",
+      "description": "管到哪为止、只许改哪些、不许读哪些、隐私怎么处理",
+      "minLength": 1
+    },
+    "交回格式": {
+      "type": "string",
+      "description": "交什么文件、放哪、长什么样；回执写在哪",
+      "minLength": 1
+    },
+    "验收标准": {
+      "type": "string",
+      "description": "能逐条打勾的合格线",
+      "minLength": 1
+    },
+    "预算": {
+      "type": "string",
+      "description": "返工最多几次、花不花钱、多长时间",
+      "minLength": 1
+    },
+    "结果": {
+      "type": "string",
+      "description": "收活时调度者填：产物在哪、验收结论、废案"
+    }
+  },
+  "additionalProperties": false
+}

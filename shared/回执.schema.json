@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "回执.schema.json",
+  "title": "回执",
+  "description": "干完交回的单子（协同协议第三节），调度者只读它，不读过程。",
+  "x-上限字": 500,
+  "type": "object",
+  "required": [
+    "标题",
+    "交了什么",
+    "放在哪",
+    "自检",
+    "卡在哪"
+  ],
+  "properties": {
+    "标题": {
+      "type": "string",
+      "description": "「### 回执 · 」后面的部分：第几段、谁交回",
+      "minLength": 1
+    },
+    "交了什么": {
+      "type": "string",
+      "description": "一两句",
+      "minLength": 1
+    },
+    "放在哪": {
+      "type": "string",
+      "description": "产物路径",
+      "minLength": 1
+    },
+    "自检": {
+      "type": "string",
+      "description": "照交接单的验收标准逐条打勾：✅ 过、❌ 没过、⚠️ 部分",
+      "minLength": 1,
+      "pattern": "[✅❌⚠]"
+    },
+    "卡在哪": {
+      "type": "string",
+      "description": "没卡写「无」",
+      "minLength": 1
+    },
+    "读过哪些": {
+      "type": "string",
+      "description": "用到的料之外还读了哪些文件"
+    }
+  },
+  "additionalProperties": false
+}

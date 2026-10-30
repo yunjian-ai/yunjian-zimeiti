@@ -10,6 +10,9 @@ import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / "tools"))
+from common import BRAND  # noqa: E402
+DIR = BRAND["目录"]  # 安装脚本里的 ~/.<目录>/、<目录>-backup、.<目录>-installed.json
 
 
 def run(code, recipe, skills, mode, home):
@@ -40,11 +43,11 @@ def check_member(member):
         assert f"{first}/SKILL.md" in out.split("CHANGED", 1)[1].split("\n")[0], out
         out = run(code, recipe, skills, "install", home)
         assert "BACKUP" in out and f"{first}/SKILL.md" in out, out
-        backup = next((home / "yunjian-backup").iterdir()) / first / "SKILL.md"
+        backup = next((home / f"{DIR}-backup").iterdir()) / first / "SKILL.md"
         assert backup.read_text(encoding="utf-8") == "主人自己改的"
         assert run(code, recipe, skills, "--check", home).startswith("CHECK OK")
         # 升级：文件是上一版的原样（指纹对得上）→ 不备份
-        state = skills / f"{member}-install" / ".yunjian-installed.json"
+        state = skills / f"{member}-install" / f".{DIR}-installed.json"
         st = json.loads(state.read_text(encoding="utf-8"))
         (skills / first / "SKILL.md").write_text("上一版的原样", encoding="utf-8")
         import hashlib

@@ -1,6 +1,6 @@
 # OmniScraper by BeatAPI
 
-Collect public social-media content from a link and keep reusable Markdown and JSON outputs. Free, open-source methods run first. BeatAPI Social Data is an optional paid fallback for supported gaps.
+Collect public social-media content from a link and keep reusable Markdown and JSON outputs. Free, open-fetch methods run first. BeatAPI Social Data is an optional paid fallback for supported gaps.
 
 This repository packages the existing Omni Scraper CLI as an Agent Plugin with a reusable skill. It is not a hosted MCP server. The original Grok Bot template is available at https://x.ai/bot/pXW6OPoZLJS4A8bZtW466 . A shared template and a Marketplace listing are separate distribution states.
 

@@ -1,13 +1,6 @@
 {
   "github_owner": "yunjian-ai",
   "repo": "yunjian-zimeiti",
-  "limits": {
-    "skill_bytes": 98304,
-    "total_bytes": 409600,
-    "profile_bytes": 3072,
-    "description_chars": 400,
-    "skill_warn_bytes": 8192
-  },
   "feedback_url": "https://www.feishu.cn/share/base/form/shrcnFyVGCVJkpcH7lfjOD8Ec6b",
   "borrow": [
     {
@@ -20,5 +13,77 @@
       "source": "../起元/members/qingniao/skills/qingniao-write/规则卡.md",
       "why": "图片卡要先过的底层规矩"
     }
-  ]
+  ],
+  "系列": "万象",
+  "rename_extra": {},
+  "public_files_extra": [
+    "assets/hero-底图.png",
+    "assets/hero-底图.html"
+  ],
+  "member_extras": [
+    "库/README.md",
+    "库/schema",
+    "库/平台",
+    "库/手法",
+    "库/表达",
+    "库/爆款",
+    "库/样卡",
+    "库/check_library.py",
+    "库/test_check_library.py",
+    "库/建目录.py",
+    "库/test_建目录.py",
+    "库/雷达.py",
+    "库/test_雷达.py",
+    "库/目录.md",
+    "库/招式",
+    "库/索引.json",
+    "库/统计.md",
+    "抓取",
+    "库/平台规格.md",
+    "库/规格表.json",
+    "库/场景",
+    "库/品牌元素",
+    "库/参考",
+    "库/视频规格.md",
+    "库/视频规格.json",
+    "库/分镜模板.md",
+    "库/风格预设.md",
+    "库/坑清单.md",
+    "库/真人姿势.md",
+    "库/口播剪辑卡.md",
+    "库/色彩表",
+    "库/音乐"
+  ],
+  "email_ok": [
+    "support@beatapi.io"
+  ],
+  "hero": {
+    "标题": "云间Bot·万象",
+    "英文": "CLOUDMERE",
+    "副标题": "一元复始，万象更新",
+    "成员": "执笔写稿 · 丹青作画 · 掠影成片"
+  },
+  "new_member": {
+    "拼音": "jingwei",
+    "中文": "经纬",
+    "英文": "Loom",
+    "技能数": 7,
+    "管什么": "本体",
+    "开场白后半": "给一件事立起它的母体，打好地基",
+    "档案": "母体档案",
+    "系列": "起元",
+    "漏改词": [
+      "母体"
+    ],
+    "开发手册": "资料/方法/云间Bot开发手册.md",
+    "源": "../起元/members/jingwei"
+  },
+  "brand": {
+    "名": "云间",
+    "出品方": "云间工作室",
+    "英文": "Cloudmere",
+    "目录": "yunjian"
+  },
+  "共用记忆字": 275,
+  "预算豁免": []
 }

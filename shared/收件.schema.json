@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "收件.schema.json",
+  "title": "收件",
+  "description": "演进环收件箱里的一条（演进环第二节）：纠正、反馈、错题、洞察先记成这一条，判完才改正本。",
+  "x-上限字": 600,
+  "type": "object",
+  "required": [
+    "标题",
+    "原话",
+    "对应正本",
+    "第几次",
+    "判",
+    "改了哪",
+    "验"
+  ],
+  "properties": {
+    "标题": {
+      "type": "string",
+      "description": "「### 收件 · 」后面的部分：日期、来源（主人纠正／反馈单／错题／洞察）",
+      "pattern": "\\d{4}-\\d{2}-\\d{2}"
+    },
+    "原话": {
+      "type": "string",
+      "description": "纠正或反馈的原话，一两句；长的写路径",
+      "minLength": 1
+    },
+    "对应正本": {
+      "type": "string",
+      "description": "哪个文件的哪一条；同类的几处都列上；一条都没有写「无」",
+      "minLength": 1
+    },
+    "第几次": {
+      "type": "string",
+      "description": "同类纠正第几次（决定升到哪一级，见演进环第四节）",
+      "pattern": "^\\d+"
+    },
+    "判": {
+      "type": "string",
+      "description": "四选一打头：新增／更新／作废／不动，后面可跟一句为什么",
+      "pattern": "^(新增|更新|作废|不动)"
+    },
+    "改了哪": {
+      "type": "string",
+      "description": "只局部改了哪个文件哪一条（写出处和日期）；不动写为什么",
+      "minLength": 1
+    },
+    "验": {
+      "type": "string",
+      "description": "回归和预算闸：✅ 过、❌ 没过（回退）、⚠️ 部分",
+      "pattern": "[✅❌⚠]"
+    }
+  },
+  "additionalProperties": false
+}

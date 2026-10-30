@@ -7,18 +7,30 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from common import LIM, MEMBER_EXTRAS, hash_hits, is_material, is_unpublished, norm, parse_frontmatter, public_picks  # noqa: E402
+from common import BRAND, BUDGET, CONFIG, LIM, MEMBER_EXTRAS, hash_hits, is_material, is_unpublished, norm, parse_frontmatter, public_picks  # noqa: E402
+import kernel  # noqa: E402  引擎副本核对
+import zongbiao  # noqa: E402  总表：生成物是不是最新的
 import wuceng  # noqa: E402  五层上岗检查（shared/岗位说明写法.md 第五节）
 
+GREETING = f"您好，欢迎来到{BRAND['名']}。我是"
 REQUIRED = ("install", "update", "getting-started")
 LESSON = re.compile(r"第[一二三四五六七八九十0-9]+课")
+CARD = re.compile(r"^> 卡类：(事实|口径)(?:｜核对 (\d{4}-\d{2}-\d{2})｜下次核对 (\d{4}-\d{2}-\d{2}))?", re.M)
+
+
+def over(member, ver, item, msg, errors):
+    """超了预算：登记了豁免（同一位、同一项、还是登记时的版本）只提醒，否则报错。豁免在 config.json 的「预算豁免」。"""
+    if any(x.get("成员") == member and x.get("项") == item and x.get("版本") == ver for x in CONFIG.get("预算豁免", [])):
+        print(f"⚠️ [budget] {msg}（已登记豁免，只在 v{ver}；升版本前要改好）")
+    else:
+        errors.append(f"[budget] {msg}")
 
 
 def public_files(root):
     """装进 Bot、放进公开仓库的文件：和 tools/publish.py 用同一份白名单（common.public_picks），
     发布会挑走的每个文件都扫，不论后缀（.md、.json、.py、.sh……）；开发仓库里的内部文档不扫。"""
     seen = set()
-    for src, _ in [(root / "README.md", ""), (root / "CHANGELOG.md", ""), (root / "CONTRIBUTING.md", "")] + public_picks(root):
+    for src, _ in [(root / "README.md", ""), (root / "CHANGELOG.md", ""), (root / "CONTRIBUTING.md", "")] + public_picks(root, 含未发布=True):
         for f in sorted(src.rglob("*")) if src.is_dir() else [src]:
             if f.is_file() and f not in seen and f.name != ".DS_Store" and "__pycache__" not in f.parts:
                 seen.add(f)
@@ -35,13 +47,20 @@ def check_member(m, root, errors):
             text = readme.read_text(encoding="utf-8")
             for old in set(re.findall(rf"{name}-v(\d+\.\d+\.\d+)", text)) - {ver}:
                 errors.append(f"[version] {readme.relative_to(root)} 里写的是 {name}-v{old}，当前 VERSION 是 {ver}")
-            cn = ""  # 小标签、路线图这些写着成员中文名的行，版本号也要跟当前版本（v0.2.4 前路线图、小标签一直停在 v0.2.0）
-            if (m / "profile.json").exists():
-                cn = re.split(r"\s*[·｜]", json.loads((m / "profile.json").read_text(encoding="utf-8")).get("name", ""))[0].strip()
-            for line in text.splitlines() if cn else []:
-                if cn in line and "English" not in line:
-                    for old in set(re.findall(r"(?<![\w.-])v(\d+\.\d+\.\d+)", line)) - {ver}:
-                        errors.append(f"[version] {readme.relative_to(root)} 写{cn}的那行还是 v{old}，当前 VERSION 是 {ver}：{line.strip()[:40]}")
+            # 小标签、路线图这些写着成员名字的行，版本号也要跟当前版本。首页一行列一位的按中文名认；
+            # 一行列好几位、或系列名和成员中文名撞了的，config.json 写 readme_version_by: "en"，按英文名认表格行、路线图那段、小标签
+            full = json.loads((m / "profile.json").read_text(encoding="utf-8")).get("name", "") if (m / "profile.json").exists() else ""
+            cn, en = (re.split(r"\s*·\s*", re.split(r"\s*｜", full)[0]) + [""])[:2]
+            cn = cn.strip()
+            if CONFIG.get("readme_version_by") == "en":
+                segs = [ln for ln in text.splitlines() if ln.startswith("|") and f" {en} " in ln] if en else []
+                segs += [s for ln in text.splitlines() if ln.startswith("- **Roadmap") for s in re.split(r"[;；]|\. ", ln) if en and f" {en}," in s]
+                segs += [f"小标签 v{v}" for v in re.findall(rf"badge/{re.escape(cn)}-v(\d+\.\d+\.\d+)-", text)] if cn else []
+            else:
+                segs = [ln for ln in text.splitlines() if cn and cn in ln and "English" not in ln]
+            for seg in segs:
+                for old in set(re.findall(r"(?<![\w.-])v(\d+\.\d+\.\d+)", seg)) - {ver}:
+                    errors.append(f"[version] {readme.relative_to(root)} 写{cn}的地方还是 v{old}，当前 VERSION 是 {ver}：{seg.strip()[:40]}")
     prof = m / "profile.json"
     if not prof.exists():
         errors.append(f"[profile] {name}: 缺 profile.json")
@@ -55,11 +74,11 @@ def check_member(m, root, errors):
         if len(p.get("description", "")) > LIM["description_chars"]:
             errors.append(f"[profile] {name}: description 超过 {LIM['description_chars']} 字符")
         if "出品" in p.get("name", "") or p.get("name", "").count("｜") != 1:
-            errors.append(f"[profile] {name}: 名字只写「中文名 · 英文名 ｜ 管什么」，不加出品方（杨先生 2026-10-22 定）")
-        if "云间工作室" not in p.get("description", ""):
-            errors.append(f"[profile] {name}: 简介里要写明「云间工作室」出品")
-        if b > LIM["profile_bytes"]:
-            errors.append(f"[budget] {name}: profile.json {b} 字节 > {LIM['profile_bytes']}")
+            errors.append(f"[profile] {name}: 名字只写「中文名 · 英文名 ｜ 管什么」，不加出品方（2026-10-22 定）")
+        if BRAND["出品方"] not in p.get("description", ""):
+            errors.append(f"[profile] {name}: 简介里要写明「{BRAND['出品方']}」出品")
+        if b > LIM["profile_bytes"]:  # 和别的预算项一样认豁免：新成员发布、别人第 5 段加一句时，存量超线的跟各自下个小版本改
+            over(name, ver, "profile字节", f"{name}: profile.json {b} 字节 > {LIM['profile_bytes']}", errors)
     if (m / "memory.md").exists():
         total += (m / "memory.md").stat().st_size
     skills = sorted(d for d in (m / "skills").iterdir() if d.is_dir())
@@ -100,7 +119,7 @@ def check_member(m, root, errors):
             errors.append(f"[install] {name}: memory.md 要正好三段——「【{cn}安装规矩】…」「【{cn}装完规矩】…」和一行「【{cn}安装状态】现在装的：…｜上回查新版：…｜更新方式：…」")
         # 平台一条记忆最多 500 字，超了后半截悄悄截掉（2026-10-27 实测）；按填好地址和版本号算，留 20 字余量
         for e in entries:
-            n = len(e.replace("{{OWNER}}", "yunjian-ai").replace("{{REPO}}", "yunjian-zimeiti").replace("{{VERSION}}", "10.10.10"))
+            n = len(e.replace("{{OWNER}}", CONFIG["github_owner"]).replace("{{REPO}}", CONFIG["repo"]).replace("{{VERSION}}", "10.10.10"))
             if n > 480:
                 errors.append(f"[install] {name}: memory.md 里「{e[:12]}…」填好后 {n} 字，一条记忆不能超过 480 字（平台到 500 字就截掉）")
         if "安装记录" in ins:
@@ -122,8 +141,8 @@ def check_member(m, root, errors):
                 errors.append(f"[instructions] {name}: 岗位说明写「不到 {n} 个」，实际有 {len(names)} 个技能")
     # 开场白（shared/成员规范.md 第三节）：安装技能、入门技能、安装记录三处都要写着
     for where in (m / "skills" / f"{name}-install" / "SKILL.md", m / "skills" / f"{name}-getting-started" / "SKILL.md", m / "memory.md"):
-        if where.exists() and "您好，欢迎来到云间。我是" not in where.read_text(encoding="utf-8"):
-            errors.append(f"[greeting] {name}: {where.relative_to(m)} 里没有开场白「您好，欢迎来到云间。我是…」")
+        if where.exists() and GREETING not in where.read_text(encoding="utf-8"):
+            errors.append(f"[greeting] {name}: {where.relative_to(m)} 里没有开场白「{GREETING}…」")
     for d in skills:
         f = d / "SKILL.md"
         if not f.exists():
@@ -143,15 +162,15 @@ def check_member(m, root, errors):
                 errors.append(f"[frontmatter] {d.name}: 头信息里的名字「{meta['name']}」跟文件夹名对不上")
             if not meta["name"].startswith(name + "-"):
                 errors.append(f"[frontmatter] {d.name}: name 必须以 {name}- 开头")
-            if len(meta["description"]) > LIM["description_chars"]:
-                errors.append(f"[frontmatter] {d.name}: 说明写长了，上限 {LIM['description_chars']} 字符")
+            if len(meta["description"]) > BUDGET["技能说明字"]:  # 技能目录每次都带、平台还会截断，说明要短
+                over(name, ver, "技能说明字", f"{d.name}: 说明 {len(meta['description'])} 字，上限 {BUDGET['技能说明字']}", errors)
         for extra in d.iterdir():
             if extra.is_file():
                 total += extra.stat().st_size
                 if extra.name == "SKILL.md" and extra.stat().st_size > LIM["skill_bytes"]:
                     errors.append(f"[budget] {d.name}/SKILL.md {extra.stat().st_size} 字节 > {LIM['skill_bytes']}")
                 elif extra.name == "SKILL.md" and extra.stat().st_size > LIM.get("skill_warn_bytes", 1 << 30):
-                    print(f"⚠️ [budget] {d.name}/SKILL.md {extra.stat().st_size} 字节，超过建议的 {LIM['skill_warn_bytes']}（只提醒；硬上限 {LIM['skill_bytes']}，见 考试记录/技能体量实测-2026-10-23.md）")
+                    print(f"⚠️ [budget] {d.name}/SKILL.md {extra.stat().st_size} 字节，超过建议的 {LIM['skill_warn_bytes']}（只提醒；硬上限 {LIM['skill_bytes']}）")
             if extra.is_file() and extra.suffix == ".md" and extra.name != "SKILL.md":
                 corpus[f"{d.name}/{extra.name}"] = extra.read_text(encoding="utf-8")
     # 骨架没补完（tools/new_member.py 生成的「【待写】」）
@@ -166,6 +185,18 @@ def check_member(m, root, errors):
         head = "\n".join(f.read_text(encoding="utf-8").splitlines()[:5])
         if "示例数据" not in head and "【示例】" not in head:
             errors.append(f"[examples] {name}/examples/{f.name}: 开头没标「示例数据（虚构主人）」")
+    for f in sorted(m.glob("skills/**/*卡*.md")):  # 知识六层：卡标卡类，事实卡带核对日期（到期由体检列出，这里只查写没写对）
+        k = CARD.search(f.read_text(encoding="utf-8")[:800])
+        if not k or (k[1] == "事实" and not (k[3] and k[3] > k[2])):
+            errors.append(f"[card] {name}/{f.relative_to(m)}: 标题下面要写「> 卡类：事实｜核对 日期｜下次核对 日期」（下次晚于核对）或「> 卡类：口径｜…」")
+    if len(names) > BUDGET["技能数"]:
+        over(name, ver, "技能数", f"{name}: {len(names)} 个技能，上限 {BUDGET['技能数']}（超了拆成员，或把技能并成「技能＋卡」）", errors)
+    tpl = m / "dist" / "template.json"
+    if tpl.exists():  # 每次对话都带的：指令（分享卡描述）＋自己的记忆＋账号共用记忆（config.json 的「共用记忆字」，实量）
+        t = json.loads(tpl.read_text(encoding="utf-8"))
+        n = len(t["_meta"]["storefront"]) + 2 + len(t["profile"]["description"]) + sum(len(x["content"]) for x in t["memory"]) + CONFIG.get("共用记忆字", 0)
+        if n > BUDGET["Bot常驻字"]:
+            over(name, ver, "Bot常驻字", f"{name}: 每次对话都带 {n} 字，上限 {BUDGET['Bot常驻字']}", errors)
     for r in REQUIRED:
         if f"{name}-{r}" not in names:
             errors.append(f"[skills] {name}: 缺必备技能 {name}-{r}")
@@ -174,6 +205,7 @@ def check_member(m, root, errors):
     # 交叉引用：提到的本成员技能名、反引号里的 .md 文件都要存在
     # 只在成员自己的包、共用规范里找（不算考试记录、资料里碰巧同名的文件——那些不随包发出去，公开版里会对不上）
     files = {p.name for d in (root / "members", root / "shared") if d.is_dir() for p in d.rglob("*.md")}
+    files |= {n for n in ("README.md", "CHANGELOG.md", "CONTRIBUTING.md") if (root / n).exists()}  # 根目录会公开的这几份也算
     pool = dict(corpus)
     if (m / "memory.md").exists():
         pool["memory.md"] = (m / "memory.md").read_text(encoding="utf-8")
@@ -187,7 +219,7 @@ def check_member(m, root, errors):
                 errors.append(f"[xref] {src}: 引用了不存在的文件 {ref}")
         # 装好的公共库里的文件：要在发布白名单里（不然公开仓库没有）、也要写在安装脚本里（不然装不到主人那）——v0.3 口播剪辑卡漏过一次
         inst = (m / "install.sh").read_text(encoding="utf-8") if (m / "install.sh").exists() else ""
-        for ref in set(re.findall(r"~/\.yunjian/" + re.escape(name) + r"/库/([^`/\s）)，。]+)", text)):
+        for ref in set(re.findall(r"~/\." + re.escape(BRAND["目录"]) + "/" + re.escape(name) + r"/库/([^`/\s）)，。]+)", text)):
             if not (m / "库" / ref).exists():
                 errors.append(f"[xref] {src}: 引用了库里不存在的 {ref}")
             elif f"库/{ref}" not in MEMBER_EXTRAS or (inst and "库" in inst and ref not in inst):
@@ -225,16 +257,29 @@ def main(root):
         if (m / "skills").is_dir():
             totals[m.name] = check_member(m, root, errors)
             wuceng.check(m, errors)
-    # 借用：从起元原样借来的文件（正本在起元），要和正本一字不差；正本不在本机（如 CI）就跳过
-    cfg = json.loads((root / "tools" / "config.json").read_text(encoding="utf-8"))
-    for b in cfg.get("borrow", []):
+    # 借用：从别的项目原样借来的文件，要和正本一字不差；正本不在本机（如 CI）就跳过
+    for b in CONFIG.get("borrow", []):
         copy, src = root / b["copy"], (root / b["source"]).resolve()
         if not copy.exists():
             errors.append(f"[borrow] {b['copy']}: 登记了借用，包里却没有这个文件")
         elif not src.exists():
             print(f"ℹ️ [borrow] 正本 {b['source']} 不在这台机器上，跳过比对")
         elif copy.read_bytes() != src.read_bytes():
-            errors.append(f"[borrow] {b['copy']}: 和起元的正本 {b['source']} 不一样——正本改了要原样复制过来，不在复制件上改")
+            errors.append(f"[borrow] {b['copy']}: 和正本 {b['source']} 不一样——正本改了要原样复制过来，不在复制件上改")
+    kernel.check(root, errors, CONFIG.get("brand"))
+    lf = root / kernel.LOCK
+    if lf.exists():  # 引擎自己的预算：工具代码行数、规范份数和大小（只算引擎同步来的副本）
+        locked = json.loads(lf.read_text(encoding="utf-8"))["文件"]
+        n = sum(len((root / r).read_text(encoding="utf-8").splitlines()) for r in locked if r.endswith(".py") and (root / r).exists())
+        if n > BUDGET["引擎代码行"]:
+            errors.append(f"[budget] 引擎工具代码 {n} 行，上限 {BUDGET['引擎代码行']}（引擎自己不许变胖）")
+        docs = [r for r in locked if r.startswith("shared/") and r.endswith(".md")]
+        if len(docs) > BUDGET["引擎规范份数"]:
+            errors.append(f"[budget] 引擎规范 {len(docs)} 份，上限 {BUDGET['引擎规范份数']}")
+        for r in docs:
+            if (root / r).exists() and (root / r).stat().st_size > BUDGET["引擎规范字节"]:
+                errors.append(f"[budget] {r} {(root / r).stat().st_size} 字节，引擎规范每份上限 {BUDGET['引擎规范字节']}")
+    zongbiao.check(root, CONFIG, BRAND["名"], errors)
     for e in errors:
         print("❌", e)
     print(("✅ 全部通过" if not errors else f"共 {len(errors)} 处问题") + "｜" + "，".join(f"{k} {v} 字节" for k, v in totals.items()))

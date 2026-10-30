@@ -1,4 +1,4 @@
-"""对试金交出的一份报告做机械检查（规则卡第六节的格式里能用程序验证的部分）。只用标准库。
+"""对验证类成员交出的一份报告做机械检查（规则卡第六节的格式里能用程序验证的部分）。只用标准库。
 输入 JSON：{"report": "报告全文"}。输出问题代码：NO_VERDICT / BAD_VERDICT / NO_STANDARD / ISSUE_NO_LEVEL /
 ISSUE_NO_EVIDENCE / ISSUE_NO_FIX / VERDICT_CONFLICT / MISSING_GAPS。用法：python3 tools/check_report.py 文件.json ..."""
 import json
