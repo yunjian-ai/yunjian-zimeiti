@@ -97,7 +97,74 @@ def check_single(data, lib=None):
     return errs
 
 
+PRICE = re.compile(r"[¥￥]\s*(\d+(?:\.\d+)?)|(\d+(?:\.\d+)?)\s*元")
+HEX = re.compile(r"#[0-9A-Fa-f]{6}")
+
+
+def prices_in(text):
+    """文字里所有带 ¥／元 的价格数（锁死清单只许一个价）。"""
+    return [a or b for a, b in PRICE.findall(text or "")]
+
+
+def check_lock_list(lock):
+    """锁死清单（需求单卡第七节）：字多、版式要准的图，文案原文、价格、色值、尺寸、禁写一次锁死。"""
+    if not isinstance(lock, dict):
+        return ["锁死清单要写成 {\"尺寸\", \"文案\", \"价格\", \"色值\", \"禁写\"}"]
+    errs = [f"锁死清单缺「{k}」" for k in ("尺寸", "文案", "价格", "色值", "禁写") if k not in lock]
+    if errs:
+        return errs
+    size = lock["尺寸"]
+    if not (isinstance(size, list) and len(size) == 2 and all(isinstance(v, int) and v > 0 for v in size)):
+        errs.append("锁死清单尺寸要写成 [宽, 高] 两个正整数像素")
+    items = lock["文案"]
+    if not isinstance(items, list) or not items:
+        errs.append("锁死清单文案至少一段：[{\"id\": \"标题\", \"原文\": \"…\"}]")
+        items = []
+    ids, alltext = set(), []
+    for i, it in enumerate(items, 1):
+        if not isinstance(it, dict) or not isinstance(it.get("id"), str) or not it["id"].strip():
+            errs.append(f"锁死清单文案第 {i} 段要有 id")
+            continue
+        if it["id"] in ids:
+            errs.append(f"锁死清单文案 id「{it['id']}」重复")
+        ids.add(it["id"])
+        if not isinstance(it.get("原文"), str) or not it["原文"].strip():
+            errs.append(f"锁死清单文案「{it['id']}」原文是空的")
+        else:
+            alltext.append(it["原文"])
+    price = lock["价格"]
+    found = sorted({float(x) for t in alltext for x in prices_in(t)})
+    if price is None:
+        if found:
+            errs.append(f"文案里有价格 {found}，锁死清单「价格」却写 null：价格只能有一个，写进「价格」")
+    elif not re.fullmatch(r"\d+(?:\.\d+)?", str(price)):
+        errs.append("锁死清单价格只写一个数（如 \"129\"），不带 ¥、不写区间")
+    elif found and found != [float(price)]:
+        errs.append(f"文案里的价格 {found} 和锁死的价格 {price} 对不上：一张图只出现一个价")
+    elif not found:
+        errs.append(f"锁死了价格 {price}，文案里没有一段带「¥{price}」或「{price}元」")
+    colors = lock["色值"]
+    if not isinstance(colors, dict) or not colors or not all(isinstance(v, str) and HEX.fullmatch(v) for v in colors.values()):
+        errs.append("锁死清单色值要写成 {\"底色\": \"#RRGGBB\", …}，至少一个")
+    ban = lock["禁写"]
+    if not isinstance(ban, list) or not all(isinstance(w, str) and w for w in ban):
+        errs.append("锁死清单禁写要写成列表（没有就写 []）")
+    else:
+        for w in ban:
+            for t in alltext:
+                if w in t:
+                    errs.append(f"文案「{t}」里有禁写的「{w}」")
+    return errs
+
+
 def check_brief(data, lib=None):
+    errs = check_brief_body(data, lib)
+    if "锁死清单" in data:
+        errs += check_lock_list(data["锁死清单"])
+    return errs
+
+
+def check_brief_body(data, lib=None):
     if data.get("档") == "单图":
         return check_single(data, lib)
     if "档" in data and data["档"] not in DANG:

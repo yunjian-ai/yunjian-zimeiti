@@ -437,5 +437,35 @@ if 有音视频工具():
 else:
     print("（没有 numpy 或 ffmpeg，音视频脚本的用例跳过）")
 
+# check_reel.py（10-31 质检补的直接用例）：需求缺项、清单取最新一版、关口点过但缺文件、拍子 JSON 坏了
+with tempfile.TemporaryDirectory() as t:
+    P = Path(t) / "片子"; (P / "锁定").mkdir(parents=True); (P / "进度").mkdir(); (P / "音乐").mkdir()
+    (P / "需求.md").write_text("- 类型：口播片\n- 平台：抖音\n- 画幅：9:16\n- 时长：40 秒\n- 风格：干净\n", encoding="utf-8")
+    code, out = 跑("reel-brief/check_reel.py", str(P))
+    应该(code == 1 and "缺：预算" in out, "check_reel：需求.md 缺「预算」没报出来：" + out[-200:])
+    (P / "需求.md").write_text((P / "需求.md").read_text(encoding="utf-8") + "- 预算：0 元\n", encoding="utf-8")
+    (P / "锁定" / "人物清单-v1.md").write_text("- 发型：短发\n", encoding="utf-8")
+    (P / "锁定" / "人物清单-v2.md").write_text("".join(f"- {k}：有\n" for k in ("发型", "脸", "上装", "下装", "鞋", "必须出现", "禁止")), encoding="utf-8")
+    (P / "进度" / "关口.json").write_text('{"锁定": "过"}', encoding="utf-8")
+    code, out = 跑("reel-brief/check_reel.py", str(P))
+    应该(code == 1 and "人物清单-v2.md 齐" in out and "场景清单" in out and "货品清单" not in out, "check_reel：没取最新一版清单，或锁定关口点过缺场景清单没报、货品清单误报：" + out[-300:])
+    (P / "锁定" / "场景清单-v1.md").write_text("".join(f"- {k}：有\n" for k in ("场景", "灯光", "背景", "地面", "禁止")), encoding="utf-8")
+    (P / "音乐" / "拍子.json").write_text("{坏的", encoding="utf-8")
+    code, out = 跑("reel-brief/check_reel.py", str(P))
+    应该(code == 1 and "不是合法 JSON" in out, "check_reel：拍子.json 坏了没报：" + out[-200:])
+    (P / "音乐" / "拍子.json").write_text('{"bpm": 120, "小节秒": 2, "拍": [], "重拍": [], "大落点": [], "时长": 10}', encoding="utf-8")
+    code, out = 跑("reel-brief/check_reel.py", str(P))
+    应该(code == 0 and "PASS" in out, "check_reel：都齐了还不过：" + out[-300:])
+
+# 放大.py（10-31 质检补的直接用例；要 ffmpeg）：只用 ffmpeg 放大，竖版按给的尺寸出、声音带着
+if 有音视频工具():
+    import 媒体
+    with tempfile.TemporaryDirectory() as t:
+        src, dst = f"{t}/小.mp4", f"{t}/大.mp4"
+        媒体.跑("-f", "lavfi", "-i", "testsrc=size=108x192:rate=30:duration=1", "-f", "lavfi", "-i", "sine=frequency=440:duration=1", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-c:a", "aac", "-shortest", src)
+        code, out = 跑("reel-cut/放大.py", src, dst, "--尺寸", "216x384", "--只用ffmpeg")
+        d = 媒体.信息(dst) if Path(dst).exists() else {}
+        应该(code == 0 and d.get("宽") == 216 and d.get("高") == 384 and d.get("有音轨"), f"放大.py：没按 216×384 出或丢了声音：{code} {d} {out[-200:]}")
+
 print("\n".join("❌ " + x for x in 坏) or "✅ 掠影自测全过")
 sys.exit(1 if 坏 else 0)

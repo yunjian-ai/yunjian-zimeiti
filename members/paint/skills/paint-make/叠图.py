@@ -45,6 +45,9 @@ def find_font(name=None, files=None):
     return None
 
 
+NO_HEAD = set("，。、；：？！）》」』】〕…—,.;:?!)%")  # 不能在行首的标点：换行时把上一行最后一个字带下来
+
+
 def wrap(text, font, draw, max_w):
     lines, cur = [], ""
     for ch in text:
@@ -54,6 +57,9 @@ def wrap(text, font, draw, max_w):
             continue
         if draw.textlength(cur + ch, font=font) <= max_w or not cur:
             cur += ch
+        elif ch in NO_HEAD and len(cur) > 1:
+            lines.append(cur[:-1])
+            cur = cur[-1] + ch
         else:
             lines.append(cur)
             cur = ch

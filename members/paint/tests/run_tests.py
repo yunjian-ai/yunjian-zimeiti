@@ -464,6 +464,84 @@ else:
                 px = out.convert("RGB").getpixel((50, 50))
             report(code == 0 and abs(px[0] - 100) <= 6 and abs(px[1] - 50) <= 6, "后期：图片层正片叠底，和衣服底色相乘", f"{px}")
 
+# ⑨ 排版出图（v0.6.0）：锁死清单、排版.py 两档、逐条自检埋错全拦
+import 排版  # noqa: E402
+from check_brief import check_lock_list  # noqa: E402
+sys.path.insert(0, str(HERE.parent / "skills" / "paint-check"))
+from check_paint import check_lock  # noqa: E402
+
+LOCK = {"尺寸": [360, 640], "文案": [{"id": "标题", "原文": "阿青卫衣 招募穿搭达人"}, {"id": "福利", "原文": "佣金 20%，寄样包邮"},
+                                    {"id": "价格", "原文": "到手价 ¥79"}],
+        "价格": "79", "色值": {"底色": "#F4ECE1", "主色": "#3B2A1E", "白": "#FFFFFF"}, "禁写": ["最低价"]}
+report(check_lock_list(LOCK) == [], "锁死清单：好清单不报错", f"{check_lock_list(LOCK)}")
+for why, edit, word in [
+        ("两个价", lambda d: d["文案"].append({"id": "原价", "原文": "原价 ¥99"}), "对不上"),
+        ("禁写混进文案", lambda d: d["文案"].append({"id": "x", "原文": "全网最低价"}), "禁写"),
+        ("色值不是 #RRGGBB", lambda d: d["色值"].update(主色="棕色"), "色值"),
+        ("尺寸不是两个整数", lambda d: d.update(尺寸=[360]), "尺寸"),
+        ("锁了价格文案里没有", lambda d: d.update(价格="88"), "对不上"),
+        ("id 重复", lambda d: d["文案"].append({"id": "标题", "原文": "又一个"}), "重复")]:
+    d = json.loads(json.dumps(LOCK, ensure_ascii=False))
+    edit(d)
+    report(any(word in e for e in check_lock_list(d)), f"锁死清单：{why}要拦", f"{check_lock_list(d)}")
+report(any("价格" in e for e in check_brief({"档": "单图", "锁死清单": dict(LOCK, 价格=None)}, LIB)), "需求单：带锁死清单时也查（价格写 null 文案却有价）")
+
+LAYOUT = [{"id": "顶条", "type": "rect", "color": "#3B2A1E", "x": 0, "y": 0, "w": 1, "h": 0.2},
+          {"type": "text", "锁": "标题", "x": 0.06, "y": 0.05, "w": 0.88, "h": 0.1, "color": "#FFFFFF"},
+          {"type": "text", "锁": "福利", "x": 0.08, "y": 0.35, "w": 0.84, "h": 0.15, "color": "#3B2A1E"},
+          {"type": "text", "锁": "价格", "x": 0.08, "y": 0.7, "w": 0.84, "h": 0.1, "color": "#3B2A1E"}]
+_, e = 排版.resolve(LAYOUT, LOCK)
+report(e == [], "排版：版式全从锁死清单取字，不报错", f"{e}")
+for why, layout, word in [
+        ("改了一个字", LAYOUT[:2] + [dict(LAYOUT[2], text="佣金 25%，寄样包邮")] + LAYOUT[3:], "不一样"),
+        ("漏排一段", LAYOUT[:3], "漏项"),
+        ("字没写锁", LAYOUT + [{"type": "text", "text": "限时", "x": 0, "y": 0.9, "w": 1, "h": 0.05}], "没写「锁」"),
+        ("颜色不在色值里", LAYOUT[:3] + [dict(LAYOUT[3], color="#123456")], "色值")]:
+    _, e = 排版.resolve(layout, LOCK)
+    report(any(word in x for x in e), f"排版：版式{why}要拦", f"{e}")
+
+with tempfile.TemporaryDirectory() as t:
+    t = Path(t)
+    (t / "单.json").write_text(json.dumps({"锁死清单": LOCK}, ensure_ascii=False), encoding="utf-8")
+    (t / "版式.json").write_text(json.dumps(LAYOUT, ensure_ascii=False), encoding="utf-8")
+    if 叠图.Image and 叠图.find_font():
+        code = 排版.main([str(t / "单.json"), str(t / "版式.json"), "-o", str(t / "基础"), "--档", "基础"])
+        rec = json.loads((t / "基础" / "排版回执.json").read_text(encoding="utf-8"))
+        report(code == 0 and rec["档"] == "基础版" and {"成品.png", "成品.jpg"} <= set(rec["文件"]), "排版：基础版出 PNG＋JPG、自检过", f"{code} {rec}")
+        ok = check_lock(t / "基础", LOCK) == []
+        for why, edit, word in [
+                ("改一个字", lambda r: r["文字层"][0].update(text="阿青卫衣 招募穿搭大人"), "字不对"),
+                ("多一个价", lambda r: r["文字层"].append({"id": "原价", "text": "原价 ¥99"}), "一个价"),
+                ("色值偏了", lambda r: r["文字层"][1].update(color="#3B2A1F"), "色值"),
+                ("尺寸不对", lambda r: r.update(尺寸=[360, 641]), "尺寸"),
+                ("漏一段", lambda r: r["文字层"].pop(), "漏了")]:
+            r = json.loads(json.dumps(rec, ensure_ascii=False))
+            edit(r)
+            (t / "基础" / "排版回执.json").write_text(json.dumps(r, ensure_ascii=False), encoding="utf-8")
+            got = check_lock(t / "基础", LOCK)
+            ok = ok and any(word in x for x in got)
+            report(any(word in x for x in got), f"自检：回执{why}要拦", f"{got}")
+        # 没装 PhotoCraft：要升级版也自动退基础版，不卡住、不替主人装
+        real, 排版.后期.find_cli = 排版.后期.find_cli, lambda: None
+        try:
+            code = 排版.main([str(t / "单.json"), str(t / "版式.json"), "-o", str(t / "退"), "--档", "升级"])
+        finally:
+            排版.后期.find_cli = real
+        rec = json.loads((t / "退" / "排版回执.json").read_text(encoding="utf-8"))
+        report(code == 0 and rec["档"] == "基础版" and "成品.psd" not in rec["文件"], "排版：没装 PhotoCraft 时要升级版也退基础版")
+        lines = 叠图.wrap("佣金二十，寄样包邮", 叠图.ImageFont.truetype(str(叠图.find_font()), 20), 叠图.ImageDraw.Draw(叠图.Image.new("RGB", (10, 10))), 81)
+        report(len(lines) > 1 and not any(x[0] in 叠图.NO_HEAD for x in lines), "叠图：换行时标点不打头", f"{lines}")
+    if 排版.后期.find_cli() and 叠图.Image:
+        outs = []
+        for k in (1, 2):
+            code = 排版.main([str(t / "单.json"), str(t / "版式.json"), "-o", str(t / f"升{k}")])
+            outs.append((t / f"升{k}" / "成品.png").read_bytes())
+        rec = json.loads((t / "升1" / "排版回执.json").read_text(encoding="utf-8"))
+        want = {it["id"]: it["原文"] for it in LOCK["文案"]}
+        report(code == 0 and rec["档"] == "升级版" and rec["来源"] == "PSD 读回" and {x["id"]: x["text"] for x in rec["文字层"]} == want,
+               "排版：升级版出 PSD，读回文字层和锁死清单一字不差", f"{rec}")
+        report(outs[0] == outs[1], "排版：同一份清单跑两次，PNG 逐字节一样")
+
 md = (LIB / "平台规格.md").read_text(encoding="utf-8")
 heads = set(re.findall(r"^### (\S+?)(?:（|$)", md, re.M))
 pending = {h for h in heads if re.search(rf"^### {h}[^\n]*\n+\*\*待核\*\*", md, re.M)}

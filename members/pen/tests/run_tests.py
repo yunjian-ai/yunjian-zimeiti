@@ -128,5 +128,18 @@ _bold = {"一行里 **A 很重要**，还有 **B 也重要。**完": "一行里 
 _got = {k: paiban.render("标题：试\n\n" + k)[1].split("\n\n", 1)[1].strip() for k in _bold}
 report(_got == _bold, "长文排版：一行几处加粗不串、== 里套粗体不叠两层（Bot 实测报的毛病）", str({k: v for k, v in _got.items() if v != _bold[k]}))
 
+# 提词卡.py（10-31 质检补的直接用例）：段落色条、重点黄底、重读红字、段头提示、原文不丢字、不留 Markdown 记号
+import importlib.util as _iu, tempfile as _tf
+_sp = _iu.spec_from_file_location("提词卡", HERE.parent / "skills" / "pen-draft" / "提词卡.py"); _tc = _iu.module_from_spec(_sp); _sp.loader.exec_module(_tc)
+_g = "🟥 ① 钩子 0～3″〔看镜头〕\n一件**加绒**卫衣，\n==我没请摄影师==，\n🟧 ② 冲突〔平常语气〕\n以前拍<新款>。\n"
+_h = _tc.render(_g)
+report(_h.count('class="seg"') == 2 and "#e63946" in _h and "#f4a261" in _h, "提词卡：两段、红钩子橙冲突两条色条")
+report("<mark>我没请摄影师</mark>" in _h and '<span class="stress">加绒</span>' in _h, "提词卡：==重点== 变黄底、**重读** 变红字")
+report("看镜头" in _h and "平常语气" in _h and "以前拍&lt;新款&gt;" in _h and "==" not in _h.split("<body")[-1] and "**" not in _h.split("<body")[-1], "提词卡：段头提示保留、台词里的尖括号转义、正文不留 == 和 ** 记号")
+with _tf.TemporaryDirectory() as _t:
+    _src = Path(_t) / "稿.txt"; _src.write_text(_g, encoding="utf-8")
+    _r = subprocess.run([sys.executable, str(HERE.parent / "skills" / "pen-draft" / "提词卡.py"), str(_src)], capture_output=True, text=True)
+    report(_r.returncode == 0 and (Path(_t) / "稿.html").exists(), "提词卡：命令行不写 -o 存在稿子旁边同名 .html")
+
 print("\n" + ("全部通过" if not fails else f"{fails} 项没过"))
 sys.exit(1 if fails else 0)

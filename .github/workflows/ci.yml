@@ -4,6 +4,8 @@ on:
   pull_request:
 jobs:
   check:
+    # 云端同步每 10 分钟的自动提交（auto: 开头）不跑检查：2026-10 因为它把 2000 分钟免费额度用超，Actions 被停
+    if: github.event_name != 'push' || !startsWith(github.event.head_commit.message, 'auto:')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
