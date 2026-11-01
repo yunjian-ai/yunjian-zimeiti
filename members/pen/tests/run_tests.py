@@ -46,7 +46,7 @@ report(lv("02-极限词") == ["硬"] and lv("18-非带货的最好不算违法")
 
 # ①⅞ 误伤：真人写的文章和口播原话里，翻案腔、名词化、黑话、量产腔不许报（对照集只在开发仓库本机，公开仓库没有就跳过）
 import glob, re as _re
-REF = Path.home() / "Desktop/云间/起元/资料/对标/写作"
+REF = Path.home() / "Desktop/云间/01-起元/02-起元成员/资料/对标/写作"
 human = [open(f, encoding="utf-8").read() for f in sorted(glob.glob(str(REF / "shuorenhua/evals/human-corpus/HUMAN-*.txt")))]
 q = REF / "jianghushuo-oral-skill/references/quotes.md"
 if q.exists():

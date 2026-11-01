@@ -5,12 +5,12 @@
   "borrow": [
     {
       "copy": "members/paint/skills/paint-make/借用/图片卡.md",
-      "source": "../起元/members/qingniao/skills/qingniao-write/图片卡.md",
+      "source": "../../01-起元/02-起元成员/members/qingniao/skills/qingniao-write/图片卡.md",
       "why": "丹青单图写提示词（规划书 v1.4 决策 32）"
     },
     {
       "copy": "members/paint/skills/paint-make/借用/规则卡.md",
-      "source": "../起元/members/qingniao/skills/qingniao-write/规则卡.md",
+      "source": "../../01-起元/02-起元成员/members/qingniao/skills/qingniao-write/规则卡.md",
       "why": "图片卡要先过的底层规矩"
     }
   ],
@@ -76,7 +76,7 @@
       "母体"
     ],
     "开发手册": "资料/方法/云间Bot开发手册.md",
-    "源": "../起元/members/jingwei"
+    "源": "../../01-起元/02-起元成员/members/jingwei"
   },
   "brand": {
     "名": "云间",

@@ -43,6 +43,7 @@ description: >-
 品牌：logo（有／没有，放在哪）｜品牌色｜字体｜标语
 常做的图：
 出图：Bot 自带／GPT Image 接口（密钥在密钥卡片里）
+分层文件：（第一次见面不问；主人要 PSD 时照 paint-make 排版卡第三节问过才填：装了 PhotoCraft／不装）
 喜好：（paint-library 做满 5 张归纳后补）
 还没问的题：
 ```

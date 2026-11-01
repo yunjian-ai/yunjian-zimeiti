@@ -9,7 +9,7 @@
 <p align="center">
 <!-- 总表:小标签 -->
   <a href="CHANGELOG.md"><img alt="执笔" src="https://img.shields.io/badge/执笔-v0.4.0-c0392b"></a>
-  <a href="CHANGELOG.md"><img alt="丹青" src="https://img.shields.io/badge/丹青-v0.6.0-2f6f9f"></a>
+  <a href="CHANGELOG.md"><img alt="丹青" src="https://img.shields.io/badge/丹青-v0.6.1-2f6f9f"></a>
   <a href="CHANGELOG.md"><img alt="掠影" src="https://img.shields.io/badge/掠影-v0.3.3-7a4fa0"></a>
 <!-- /总表:小标签 -->
   <a href="LICENSE"><img alt="license" src="https://img.shields.io/badge/license-CC%20BY%204.0%20%2B%20MIT-555555"></a>
@@ -109,7 +109,7 @@
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/yunjian-ai/yunjian-zimeiti/pen-v0.4.0/members/pen/dist/install.sh | bash
-curl -fsSL https://raw.githubusercontent.com/yunjian-ai/yunjian-zimeiti/paint-v0.6.0/members/paint/dist/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/yunjian-ai/yunjian-zimeiti/paint-v0.6.1/members/paint/dist/install.sh | bash
 curl -fsSL https://raw.githubusercontent.com/yunjian-ai/yunjian-zimeiti/reel-v0.3.3/members/reel/dist/install.sh | bash
 ```
 
@@ -135,7 +135,7 @@ curl -fsSL https://raw.githubusercontent.com/yunjian-ai/yunjian-zimeiti/reel-v0.
 | 起元 | 照骨 Xray | 拆解 | ✅ v0.1.3，[另一个仓库](https://github.com/yunjian-ai/yunjian) |
 | 起元 | 起元操盘 Genesis | 操盘系统 | ✅ v0.1.12，[另一个仓库](https://github.com/yunjian-ai/yunjian) |
 | 万象 | 执笔 Pen | 写稿：口播、长文、仿写、多平台 | ✅ v0.4.0 |
-| 万象 | 丹青 Paint | 做图：单图直接出，系列图立母版锁人锁货，按平台规格出图；字多的图锁死文案逐条对；字、价格、多颜色、批量交 PhotoCraft 精确排，能出 PSD；拖着调 | ✅ v0.6.0 |
+| 万象 | 丹青 Paint | 做图：单图直接出，系列图立母版锁人锁货，按平台规格出图；字多的图锁死文案逐条对；字、价格、多颜色、批量交 PhotoCraft 精确排，能出 PSD；拖着调 | ✅ v0.6.1 |
 | 万象 | 掠影 Reel | 短视频：锁人锁货锁场景，按拍子分镜，一刀一刀出静帧和视频，卡点剪辑、质检；音乐 MV、带货片、口播片 | ✅ v0.3.3 |
 | 万象 | 算盘 Abacus | 算账 | ✅ v0.1.5，[另一个仓库](https://github.com/yunjian-ai/yunjian-dianshang) |
 | 万象 | 经纪 Broker | 达人推广 | ✅ v0.1.3，[另一个仓库](https://github.com/yunjian-ai/yunjian-dianshang) |
